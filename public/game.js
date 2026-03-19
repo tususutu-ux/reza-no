@@ -12,6 +12,81 @@
   let totalRounds = 1;
   let currentRound = 0;
 
+  // === Stats ===
+  const STATS_KEY = 'resano-stats';
+
+  function loadStats() {
+    try {
+      const raw = localStorage.getItem(STATS_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) { /* ignore */ }
+    return null;
+  }
+
+  function saveStats(stats) {
+    try {
+      localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+    } catch (e) { /* ignore */ }
+  }
+
+  function updateStatsOnGameOver(playerName, isWinner, score) {
+    let stats = loadStats() || { name: playerName, gamesPlayed: 0, wins: 0, totalScore: 0, bestScore: 0 };
+    stats.name = playerName;
+    stats.gamesPlayed++;
+    if (isWinner) stats.wins++;
+    stats.totalScore += score;
+    if (score > stats.bestScore) stats.bestScore = score;
+    saveStats(stats);
+    return stats;
+  }
+
+  function renderStatsModal() {
+    const body = document.getElementById('stats-body');
+    const stats = loadStats();
+    if (!stats || stats.gamesPlayed === 0) {
+      body.innerHTML = '<div class="stats-empty">まだプレイしていません</div>';
+      return;
+    }
+    const winRate = stats.gamesPlayed > 0 ? Math.round((stats.wins / stats.gamesPlayed) * 100) : 0;
+    body.innerHTML = `
+      <div class="stats-name">${escapeHtml(stats.name)} さんの成績</div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value">${stats.gamesPlayed}</div>
+          <div class="stat-label">プレイ回数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${stats.wins}</div>
+          <div class="stat-label">勝利数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${winRate}%</div>
+          <div class="stat-label">勝率</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${stats.bestScore}</div>
+          <div class="stat-label">最高スコア</div>
+        </div>
+        <div class="stat-card wide">
+          <div class="stat-value">${stats.totalScore}</div>
+          <div class="stat-label">累計スコア</div>
+        </div>
+      </div>
+      <div class="stats-reset-row">
+        <button class="btn-stats-reset" id="btn-stats-reset">成績をリセット</button>
+      </div>
+    `;
+    const resetBtn = document.getElementById('btn-stats-reset');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        if (confirm('成績をリセットしますか？')) {
+          localStorage.removeItem(STATS_KEY);
+          renderStatsModal();
+        }
+      });
+    }
+  }
+
   // === Card Display ===
   const VALUE_DISPLAY = {
     '0': '0', '1': '1', '2': '2', '3': '3', '4': '4',
@@ -374,6 +449,11 @@
     }
 
     if (isWinner || (isLastRound && totalRounds > 1)) spawnConfetti();
+
+    // Save stats to localStorage
+    const playerName = playerNameInput.value.trim() || 'Player';
+    const myScore = isWinner ? scores.winnerScore : 0;
+    updateStatsOnGameOver(playerName, isWinner, myScore);
 
     // Show play again / next round button
     if (isHost) {
@@ -778,6 +858,27 @@
       chatPanel.classList.toggle('hidden');
       chatToggle.classList.toggle('active');
     });
+
+    // Stats modal
+    const btnStats = $('btn-stats');
+    const statsModal = $('stats-modal');
+    const btnStatsClose = $('btn-stats-close');
+    if (btnStats) {
+      btnStats.addEventListener('click', () => {
+        renderStatsModal();
+        statsModal.classList.remove('hidden');
+      });
+    }
+    if (btnStatsClose) {
+      btnStatsClose.addEventListener('click', () => {
+        statsModal.classList.add('hidden');
+      });
+    }
+    if (statsModal) {
+      statsModal.addEventListener('click', (e) => {
+        if (e.target === statsModal) statsModal.classList.add('hidden');
+      });
+    }
 
     // Stamps
     document.querySelectorAll('.stamp-btn').forEach(btn => {

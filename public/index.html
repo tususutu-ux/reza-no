@@ -20,6 +20,20 @@
           <input type="text" id="room-code-input" placeholder="ルームコード" maxlength="4" autocomplete="off" style="text-transform: uppercase;">
           <button id="btn-join" class="btn btn-secondary">参加</button>
         </div>
+        <button id="btn-stats" class="btn btn-stats-lobby">📊 成績</button>
+      </div>
+
+      <!-- Stats Modal -->
+      <div id="stats-modal" class="stats-modal hidden">
+        <div class="stats-modal-content">
+          <div class="stats-modal-header">
+            <h3>📊 あなたの成績</h3>
+            <button id="btn-stats-close" class="btn-stats-close">&times;</button>
+          </div>
+          <div id="stats-body" class="stats-body">
+            <div class="stats-empty">まだプレイしていません</div>
+          </div>
+        </div>
       </div>
 
       <div id="lobby-room" class="lobby-section hidden">

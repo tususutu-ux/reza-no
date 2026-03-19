@@ -16,6 +16,36 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/health', (req, res) => res.status(200).send('OK'));
 
+// In-memory leaderboard for this server session
+const leaderboard = new Map();
+// leaderboard entries: { name, gamesPlayed, wins, totalScore, bestScore }
+
+function updateLeaderboard(playerId, playerName, isWinner, score) {
+  let entry = leaderboard.get(playerId) || { name: playerName, gamesPlayed: 0, wins: 0, totalScore: 0, bestScore: 0 };
+  entry.name = playerName;
+  entry.gamesPlayed++;
+  if (isWinner) entry.wins++;
+  entry.totalScore += score;
+  if (score > entry.bestScore) entry.bestScore = score;
+  leaderboard.set(playerId, entry);
+}
+
+app.get('/api/leaderboard', (req, res) => {
+  const entries = Array.from(leaderboard.entries())
+    .map(([id, data]) => ({
+      id,
+      name: data.name,
+      gamesPlayed: data.gamesPlayed,
+      wins: data.wins,
+      totalScore: data.totalScore,
+      bestScore: data.bestScore,
+      winRate: data.gamesPlayed > 0 ? Math.round((data.wins / data.gamesPlayed) * 100) : 0,
+    }))
+    .sort((a, b) => b.totalScore - a.totalScore)
+    .slice(0, 50);
+  res.json(entries);
+});
+
 const roomManager = new RoomManager();
 
 io.on('connection', (socket) => {
@@ -120,6 +150,17 @@ io.on('connection', (socket) => {
       // Update total scores
       room.totalScores.set(result.scores.winnerId,
         (room.totalScores.get(result.scores.winnerId) || 0) + result.scores.winnerScore);
+
+      // Update server leaderboard for all players
+      const winnerId = result.scores.winnerId;
+      const winnerName = result.scores.winnerName;
+      const winnerScore = result.scores.winnerScore;
+      updateLeaderboard(winnerId, winnerName, true, winnerScore);
+      if (result.scores.breakdown) {
+        result.scores.breakdown.forEach(entry => {
+          updateLeaderboard(entry.playerId, entry.name, false, 0);
+        });
+      }
 
       io.to(roomCode).emit('game-over', {
         ...result.scores,
