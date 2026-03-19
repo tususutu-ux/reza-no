@@ -173,7 +173,7 @@ input[type="text"]::placeholder { color: #d1d5db; }
 /* ===== Game Screen ===== */
 #game-screen {
   flex-direction: column;
-  background: linear-gradient(180deg, #7c3aed 0%, #a855f7 30%, #c084fc 60%, #e9d5ff 100%);
+  background: radial-gradient(ellipse at center, #2d8a4e 0%, #1e6b3a 40%, #15522d 70%, #0c3b1e 100%);
   overflow: hidden;
 }
 
@@ -328,9 +328,9 @@ input[type="text"]::placeholder { color: #d1d5db; }
 
 /* Card back */
 .card-back {
-  background: linear-gradient(135deg, #c084fc, #a855f7) !important;
-  color: rgba(255,255,255,0.7) !important;
-  border: 2px solid #d8b4fe;
+  background: linear-gradient(135deg, #ec4899, #be185d) !important;
+  color: rgba(255,255,255,0.8) !important;
+  border: 2px solid #f9a8d4;
 }
 
 /* Draw pile stack */
