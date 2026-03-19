@@ -662,6 +662,52 @@ input[type="text"]::placeholder { color: #d1d5db; }
   font-size: 11px;
 }
 
+/* Stamp bar */
+.stamp-bar {
+  position: fixed;
+  right: 12px;
+  bottom: 136px;
+  display: flex;
+  gap: 2px;
+  z-index: 85;
+  flex-wrap: wrap;
+  max-width: 210px;
+  justify-content: flex-end;
+}
+
+.stamp-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.stamp-btn:hover { transform: scale(1.2); background: rgba(0,0,0,0.5); }
+.stamp-btn:active { transform: scale(0.9); }
+
+.chat-bubble.stamp {
+  background: transparent;
+  font-size: 48px;
+  padding: 0;
+  line-height: 1;
+  animation: stampPop 3s ease-out forwards;
+}
+
+@keyframes stampPop {
+  0% { opacity: 0; transform: scale(0.3) translateY(20px); }
+  10% { opacity: 1; transform: scale(1.3) translateY(0); }
+  20% { transform: scale(1) translateY(0); }
+  70% { opacity: 1; transform: translateY(-40px); }
+  100% { opacity: 0; transform: translateY(-80px); }
+}
+
 .chat-input-bar {
   position: fixed;
   right: 12px;
@@ -703,9 +749,12 @@ input[type="text"]::placeholder { color: #d1d5db; }
 
 @media (max-width: 768px) {
   .chat-area { width: 160px; right: 8px; bottom: 120px; height: 200px; }
+  .stamp-bar { right: 8px; bottom: 120px; max-width: 160px; }
+  .stamp-btn { width: 32px; height: 32px; font-size: 16px; }
   .chat-input-bar { right: 8px; bottom: 84px; }
   .chat-input-bar input { width: 120px; padding: 6px 10px; font-size: 12px; }
   .chat-bubble { font-size: 11px; padding: 4px 8px; }
+  .chat-bubble.stamp { font-size: 40px; }
 }
 
 /* Error toast */

@@ -392,16 +392,19 @@
     showNotification(`${playerName} 再接続`, 'draw');
   }
 
-  function onChatMessage({ playerName, message }) {
+  function onChatMessage({ playerName, message, isStamp }) {
     const chatArea = $('chat-area');
     if (!chatArea) return;
     const bubble = document.createElement('div');
-    bubble.className = 'chat-bubble';
-    bubble.innerHTML = `<span class="chat-name">${escapeHtml(playerName)}</span>${escapeHtml(message)}`;
+    if (isStamp) {
+      bubble.className = 'chat-bubble stamp';
+      bubble.textContent = message;
+    } else {
+      bubble.className = 'chat-bubble';
+      bubble.innerHTML = `<span class="chat-name">${escapeHtml(playerName)}</span>${escapeHtml(message)}`;
+    }
     chatArea.appendChild(bubble);
-    // Remove after animation ends
-    setTimeout(() => bubble.remove(), 8500);
-    // Keep max 10 bubbles
+    setTimeout(() => bubble.remove(), isStamp ? 3500 : 8500);
     while (chatArea.children.length > 10) {
       chatArea.removeChild(chatArea.firstChild);
     }
@@ -766,6 +769,14 @@
     btnChatSend.addEventListener('click', sendChat);
     chatInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') sendChat();
+    });
+
+    // Stamps
+    document.querySelectorAll('.stamp-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!roomCode) return;
+        socket.emit('chat-message', { roomCode, message: btn.dataset.stamp, isStamp: true });
+      });
     });
   }
 

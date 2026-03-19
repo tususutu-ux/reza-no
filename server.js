@@ -215,7 +215,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('chat-message', ({ roomCode, message }) => {
+  socket.on('chat-message', ({ roomCode, message, isStamp }) => {
     if (!message || message.trim().length === 0) return;
     const room = roomManager.getRoom(roomCode);
     if (!room) return;
@@ -224,6 +224,7 @@ io.on('connection', (socket) => {
     io.to(roomCode).emit('chat-message', {
       playerName: player.name,
       message: message.trim().slice(0, 50),
+      isStamp: !!isStamp,
     });
   });
 
