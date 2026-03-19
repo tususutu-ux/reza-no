@@ -273,7 +273,12 @@
 
   function onUnoPenalty({ targetPlayerId, cardCount }) {
     const p = gameState?.players.find(pl => pl.id === targetPlayerId);
-    showNotification(`${p?.name || '?'} ペナルティ +${cardCount}！`, 'skip');
+    const isMe = targetPlayerId === myId;
+    if (isMe) {
+      showNotification('UNO忘れた！ペナルティ +2枚！', 'skip');
+    } else {
+      showNotification(`${p?.name || '?'} UNO忘れ！+${cardCount}枚ペナルティ！`, 'skip');
+    }
   }
 
   function onGameOver(scores) {

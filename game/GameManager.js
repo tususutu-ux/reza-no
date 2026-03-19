@@ -216,8 +216,11 @@ class GameManager {
     // Advance to next player's turn
     this.advanceTurn();
 
-    // Reset calledUno for the player who just played
-    currentPlayer.calledUno = false;
+    // Only reset calledUno if player has more than 1 card
+    // (keep it if they have 1 card so challenge can check it)
+    if (currentPlayer.hand.length !== 1) {
+      currentPlayer.calledUno = false;
+    }
 
     return {
       card,
