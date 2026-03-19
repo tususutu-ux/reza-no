@@ -103,14 +103,14 @@ io.on('connection', (socket) => {
 
   // === Game Events ===
 
-  socket.on('start-game', ({ roomCode }) => {
+  socket.on('start-game', ({ roomCode, gameMode }) => {
     const room = roomManager.getRoom(roomCode);
     if (!room) return socket.emit('error', { message: '部屋が見つかりません' });
     if (socket.id !== room.hostSocketId) {
       return socket.emit('error', { message: 'ホストのみ開始できます' });
     }
 
-    const result = room.startGame();
+    const result = room.startGame(gameMode || 'normal');
     if (result.error) return socket.emit('error', { message: result.error });
 
     // Send personalized state to each player
@@ -221,6 +221,32 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('throw-ball', ({ roomCode, targetPlayerId }) => {
+    const room = roomManager.getRoom(roomCode);
+    if (!room || !room.game) return;
+
+    const playerId = room.getPlayerIdBySocket(socket.id);
+    if (!playerId) return;
+
+    const result = room.game.throwBall(playerId, targetPlayerId);
+    if (result.error) return socket.emit('error', { message: result.error });
+
+    if (result.success) {
+      io.to(roomCode).emit('ball-thrown', {
+        throwerId: playerId,
+        throwerName: result.throwerName,
+        targetPlayerId: result.targetPlayerId,
+        targetName: result.targetName,
+        swappedCount: result.swappedCount,
+      });
+
+      // Send updated state to each player
+      for (const [sid, player] of room.players) {
+        io.to(sid).emit('game-state', room.game.getStateForPlayer(player.id));
+      }
+    }
+  });
+
   socket.on('call-uno', ({ roomCode }) => {
     const room = roomManager.getRoom(roomCode);
     if (!room || !room.game) return;
@@ -269,14 +295,15 @@ io.on('connection', (socket) => {
     });
   });
 
-  socket.on('restart-game', ({ roomCode }) => {
+  socket.on('restart-game', ({ roomCode, gameMode }) => {
     const room = roomManager.getRoom(roomCode);
     if (!room) return socket.emit('error', { message: '部屋が見つかりません' });
     if (socket.id !== room.hostSocketId) {
       return socket.emit('error', { message: 'ホストのみ再開できます' });
     }
 
-    const result = room.startGame();
+    const prevMode = room.game?.gameMode || 'normal';
+    const result = room.startGame(gameMode || prevMode);
     if (result.error) return socket.emit('error', { message: result.error });
 
     for (const [sid, player] of room.players) {

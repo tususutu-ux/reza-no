@@ -44,6 +44,18 @@
         </div>
         <button id="btn-share" class="btn btn-share">📤 LINEで共有</button>
         <div id="player-list" class="player-list"></div>
+        <!-- Game mode selection (host only) -->
+        <div id="mode-settings" class="round-settings hidden">
+          <div class="setting-label">ゲームモード</div>
+          <div class="round-options">
+            <button class="btn mode-btn active" data-mode="normal">🃏 通常</button>
+            <button class="btn mode-btn" data-mode="ultimate">🔥 アルティメット</button>
+          </div>
+          <div id="ultimate-desc" class="ultimate-desc hidden">
+            🎳 ボール投げで相手の手札をシャッフル！（1ラウンド1回）
+          </div>
+        </div>
+
         <!-- Round settings (host only) -->
         <div id="round-settings" class="round-settings hidden">
           <div class="setting-label">ラウンド数</div>
@@ -114,6 +126,21 @@
     <div class="action-buttons">
       <button id="btn-uno" class="btn btn-uno" disabled>UNO!</button>
       <button id="btn-pass" class="btn btn-pass hidden">パス</button>
+      <button id="btn-ball" class="btn btn-ball hidden">🎳</button>
+    </div>
+
+    <!-- Ball target picker modal -->
+    <div id="ball-picker" class="modal hidden">
+      <div class="modal-content">
+        <p>🎳 誰に投げる？</p>
+        <div id="ball-targets" class="ball-targets"></div>
+        <button id="btn-ball-cancel" class="btn btn-secondary" style="margin-top:12px;font-size:13px;">やめる</button>
+      </div>
+    </div>
+
+    <!-- Ball animation overlay -->
+    <div id="ball-animation" class="ball-animation hidden">
+      <div class="ball-emoji">🎳</div>
     </div>
 
     <!-- Player's hand -->

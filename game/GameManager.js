@@ -1,7 +1,7 @@
 const { createDeck, canPlayOn, getCardPoints, shuffleArray, CARD_COLORS } = require('./Card');
 
 class GameManager {
-  constructor(roomId, players) {
+  constructor(roomId, players, gameMode = 'normal') {
     this.roomId = roomId;
     this.players = players; // Array of Player instances
     this.deck = [];
@@ -14,6 +14,8 @@ class GameManager {
     this.drawnThisTurn = false;
     this.pendingDrawCount = 0; // Stacked draw count (+2/+4 stacking)
     this.pendingDrawType = null; // 'draw2' or 'wild4' - what type can be stacked
+    this.gameMode = gameMode; // 'normal' or 'ultimate'
+    this.ballUsed = new Set(); // Track who used their ball this round
   }
 
   startGame() {
@@ -25,6 +27,7 @@ class GameManager {
     this.drawnThisTurn = false;
     this.pendingDrawCount = 0;
     this.pendingDrawType = null;
+    this.ballUsed = new Set();
 
     // Deal 7 cards to each player
     for (const player of this.players) {
@@ -338,6 +341,55 @@ class GameManager {
     return { success: true };
   }
 
+  throwBall(playerId, targetPlayerId) {
+    if (this.gameMode !== 'ultimate') {
+      return { error: 'アルティメットモードではありません' };
+    }
+    if (this.state !== 'playing') {
+      return { error: 'ゲームが進行中ではありません' };
+    }
+    const currentPlayer = this.getCurrentPlayer();
+    if (currentPlayer.id !== playerId) {
+      return { error: 'あなたのターンではありません' };
+    }
+    if (this.ballUsed.has(playerId)) {
+      return { error: 'このラウンドは既にボールを使いました' };
+    }
+    if (playerId === targetPlayerId) {
+      return { error: '自分には投げられません' };
+    }
+    const target = this.players.find(p => p.id === targetPlayerId);
+    if (!target) {
+      return { error: '対象プレイヤーが見つかりません' };
+    }
+
+    this.ballUsed.add(playerId);
+
+    // Shuffle the target's hand
+    shuffleArray(target.hand);
+
+    // Swap 2 random cards with cards from the deck (if they have enough cards)
+    const swapCount = Math.min(2, target.hand.length, this.deck.length);
+    const swappedOut = [];
+    for (let i = 0; i < swapCount; i++) {
+      const randIdx = Math.floor(Math.random() * target.hand.length);
+      const oldCard = target.hand[randIdx];
+      const newCard = this.drawFromDeck();
+      target.hand[randIdx] = newCard;
+      this.deck.push(oldCard); // Put old card back in deck
+      swappedOut.push(oldCard);
+    }
+    shuffleArray(this.deck); // Reshuffle deck
+
+    return {
+      success: true,
+      targetPlayerId,
+      targetName: target.name,
+      throwerName: currentPlayer.name,
+      swappedCount: swapCount,
+    };
+  }
+
   callUno(playerId) {
     const player = this.players.find(p => p.id === playerId);
     if (!player) return { error: 'プレイヤーが見つかりません' };
@@ -430,6 +482,8 @@ class GameManager {
       pendingDrawCount: this.pendingDrawCount,
       pendingDrawType: this.pendingDrawType,
       canStackDraw,
+      gameMode: this.gameMode,
+      canThrowBall: this.gameMode === 'ultimate' && isMyTurn && !this.ballUsed.has(playerId),
     };
   }
 }

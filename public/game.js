@@ -11,6 +11,7 @@
   let pendingWildCardId = null;
   let totalRounds = 1;
   let currentRound = 0;
+  let gameMode = 'normal';
 
   // === Stats ===
   const STATS_KEY = 'resano-stats';
@@ -183,6 +184,7 @@
     socket.on('player-disconnected', onPlayerDisconnected);
     socket.on('player-reconnected', onPlayerReconnected);
     socket.on('chat-message', onChatMessage);
+    socket.on('ball-thrown', onBallThrown);
 
     socket.on('error', onError);
 
@@ -206,7 +208,11 @@
   function showLobbySettings() {
     const roundSettings = $('round-settings');
     const rulesBox = $('rules-box');
-    if (isHost && roundSettings) roundSettings.classList.remove('hidden');
+    const modeSettings = $('mode-settings');
+    if (isHost) {
+      if (roundSettings) roundSettings.classList.remove('hidden');
+      if (modeSettings) modeSettings.classList.remove('hidden');
+    }
     if (rulesBox) rulesBox.classList.remove('hidden');
   }
 
@@ -490,6 +496,36 @@
     }
   }
 
+  function onBallThrown({ throwerId, throwerName, targetPlayerId, targetName, swappedCount }) {
+    const isTarget = targetPlayerId === myId;
+
+    // Show notification
+    if (isTarget) {
+      showNotification(`🎳 ${throwerName} があなたにボールを投げた！手札シャッフル！`, 'skip');
+    } else {
+      showNotification(`🎳 ${throwerName} → ${targetName} ボール！手札シャッフル！`, 'draw');
+    }
+
+    // Show ball animation
+    const ballAnim = $('ball-animation');
+    if (ballAnim) {
+      ballAnim.classList.remove('hidden');
+      setTimeout(() => ballAnim.classList.add('hidden'), 1200);
+    }
+
+    // Add shuffling animation to target opponent
+    setTimeout(() => {
+      const opponents = document.querySelectorAll('.opponent');
+      opponents.forEach(opp => {
+        const nameEl = opp.querySelector('.opponent-name');
+        if (nameEl && nameEl.textContent === targetName) {
+          opp.classList.add('shuffling');
+          setTimeout(() => opp.classList.remove('shuffling'), 1500);
+        }
+      });
+    }, 600);
+  }
+
   function onError({ message }) {
     showError(message);
   }
@@ -649,6 +685,17 @@
       btnPass.classList.add('hidden');
     }
 
+    // Ball button (Ultimate mode only)
+    const btnBall = $('btn-ball');
+    if (btnBall) {
+      if (state.canThrowBall) {
+        btnBall.classList.remove('hidden');
+        btnBall.disabled = false;
+      } else {
+        btnBall.classList.add('hidden');
+      }
+    }
+
     // Draw pile
     if (state.myTurn && state.canDraw) {
       drawPile.style.opacity = '1';
@@ -789,7 +836,7 @@
 
     btnStart.addEventListener('click', () => {
       currentRound = 0;
-      socket.emit('start-game', { roomCode });
+      socket.emit('start-game', { roomCode, gameMode });
     });
 
     // Round selection buttons
@@ -800,6 +847,52 @@
         totalRounds = parseInt(btn.dataset.rounds);
       });
     });
+
+    // Mode selection buttons
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        gameMode = btn.dataset.mode;
+        const desc = $('ultimate-desc');
+        if (desc) {
+          if (gameMode === 'ultimate') desc.classList.remove('hidden');
+          else desc.classList.add('hidden');
+        }
+      });
+    });
+
+    // Ball throw button
+    const btnBall = $('btn-ball');
+    const ballPicker = $('ball-picker');
+    const ballTargets = $('ball-targets');
+    const btnBallCancel = $('btn-ball-cancel');
+
+    if (btnBall) {
+      btnBall.addEventListener('click', () => {
+        if (!gameState || !gameState.canThrowBall) return;
+        // Show target picker with opponent list
+        ballTargets.innerHTML = '';
+        gameState.players.forEach(p => {
+          if (p.id === myId) return;
+          const btn = document.createElement('button');
+          btn.className = 'ball-target-btn';
+          btn.textContent = `🎳 ${p.name}`;
+          btn.addEventListener('click', () => {
+            socket.emit('throw-ball', { roomCode, targetPlayerId: p.id });
+            ballPicker.classList.add('hidden');
+          });
+          ballTargets.appendChild(btn);
+        });
+        ballPicker.classList.remove('hidden');
+      });
+    }
+
+    if (btnBallCancel) {
+      btnBallCancel.addEventListener('click', () => {
+        ballPicker.classList.add('hidden');
+      });
+    }
 
     btnLeave.addEventListener('click', () => {
       socket.emit('leave-room');

@@ -59,10 +59,10 @@ class Room {
     }));
   }
 
-  startGame() {
+  startGame(gameMode = 'normal') {
     if (this.players.size < 2) return { error: 'プレイヤーが2人以上必要です' };
     const playerArray = Array.from(this.players.values());
-    this.game = new GameManager(this.code, playerArray);
+    this.game = new GameManager(this.code, playerArray, gameMode);
     return this.game.startGame();
   }
 

@@ -249,6 +249,32 @@ input[type="text"]::placeholder { color: #d1d5db; }
   color: #9ca3af;
 }
 
+/* Mode selection */
+.mode-btn {
+  padding: 8px 16px !important;
+  font-size: 13px !important;
+  font-weight: 700;
+  border-radius: 10px !important;
+  background: var(--bg-medium) !important;
+  color: var(--text) !important;
+  border: 2px solid transparent;
+}
+.mode-btn.active {
+  background: linear-gradient(135deg, #ec4899, #f472b6) !important;
+  color: white !important;
+  border-color: #be185d;
+}
+.mode-btn[data-mode="ultimate"].active {
+  background: linear-gradient(135deg, #f97316, #ef4444) !important;
+  border-color: #c2410c;
+}
+.ultimate-desc {
+  font-size: 11px;
+  color: #f97316;
+  margin-top: 8px;
+  font-weight: 600;
+}
+
 .waiting-msg {
   color: var(--text-dim);
   font-size: 14px;
@@ -535,6 +561,87 @@ input[type="text"]::placeholder { color: #d1d5db; }
 .btn-pass {
   background: linear-gradient(135deg, #a78bfa, #7c3aed);
   padding: 12px 24px;
+}
+
+/* Ball throw button */
+.btn-ball {
+  background: linear-gradient(135deg, #f97316, #ef4444);
+  font-size: 24px;
+  padding: 8px 16px;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: ballBounce 1s ease-in-out infinite;
+}
+.btn-ball:disabled { animation: none; }
+
+@keyframes ballBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* Ball targets */
+.ball-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.ball-target-btn {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #f97316, #ef4444);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.ball-target-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
+
+/* Ball animation */
+.ball-animation {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ball-animation.hidden { display: none; }
+.ball-emoji {
+  font-size: 80px;
+  animation: ballThrow 1s ease-in-out forwards;
+}
+@keyframes ballThrow {
+  0% { transform: translate(0, 200px) scale(0.5); opacity: 0; }
+  20% { transform: translate(0, 0) scale(1.2); opacity: 1; }
+  40% { transform: translate(0, -50px) scale(1); }
+  60% { transform: translate(var(--ball-x, 0), var(--ball-y, -200px)) scale(1.5) rotate(360deg); }
+  80% { transform: translate(var(--ball-x, 0), var(--ball-y, -200px)) scale(2); opacity: 0.5; }
+  100% { transform: translate(var(--ball-x, 0), var(--ball-y, -200px)) scale(0); opacity: 0; }
+}
+
+/* Shuffle animation on opponent cards */
+@keyframes handShuffle {
+  0% { transform: rotate(0deg); }
+  20% { transform: rotate(15deg) translateX(5px); }
+  40% { transform: rotate(-15deg) translateX(-5px); }
+  60% { transform: rotate(10deg) translateX(3px); }
+  80% { transform: rotate(-10deg) translateX(-3px); }
+  100% { transform: rotate(0deg); }
+}
+.opponent.shuffling .mini-card {
+  animation: handShuffle 0.5s ease-in-out 3;
+}
+.opponent.shuffling {
+  background: rgba(249, 115, 22, 0.4) !important;
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.6) !important;
 }
 
 /* Turn indicator */
