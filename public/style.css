@@ -629,10 +629,10 @@ input[type="text"]::placeholder { color: #d1d5db; }
 /* Chat */
 .chat-area {
   position: fixed;
-  right: 12px;
-  bottom: 140px;
+  left: 12px;
+  bottom: 100px;
   width: 200px;
-  height: 300px;
+  height: 250px;
   pointer-events: none;
   overflow: hidden;
   display: flex;
@@ -662,24 +662,53 @@ input[type="text"]::placeholder { color: #d1d5db; }
   font-size: 11px;
 }
 
+/* Chat toggle button */
+.btn-chat-toggle {
+  position: fixed;
+  left: 8px;
+  bottom: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.4);
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 86;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.2s;
+}
+.btn-chat-toggle:hover { background: rgba(0,0,0,0.6); transform: scale(1.1); }
+.btn-chat-toggle.active { background: rgba(236, 72, 153, 0.7); }
+
+/* Chat panel (collapsible) */
+.chat-panel {
+  position: fixed;
+  left: 8px;
+  bottom: 54px;
+  z-index: 85;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.chat-panel.hidden { display: none; }
+
 /* Stamp bar */
 .stamp-bar {
-  position: fixed;
-  right: 12px;
-  bottom: 136px;
   display: flex;
-  gap: 2px;
-  z-index: 85;
+  gap: 3px;
   flex-wrap: wrap;
-  max-width: 210px;
-  justify-content: flex-end;
+  max-width: 180px;
 }
 
 .stamp-btn {
   width: 36px;
   height: 36px;
   border: none;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.4);
   border-radius: 10px;
   font-size: 20px;
   cursor: pointer;
@@ -689,7 +718,7 @@ input[type="text"]::placeholder { color: #d1d5db; }
   justify-content: center;
   padding: 0;
 }
-.stamp-btn:hover { transform: scale(1.2); background: rgba(0,0,0,0.5); }
+.stamp-btn:hover { transform: scale(1.2); background: rgba(0,0,0,0.6); }
 .stamp-btn:active { transform: scale(0.9); }
 
 .chat-bubble.stamp {
@@ -708,17 +737,13 @@ input[type="text"]::placeholder { color: #d1d5db; }
   100% { opacity: 0; transform: translateY(-80px); }
 }
 
-.chat-input-bar {
-  position: fixed;
-  right: 12px;
-  bottom: 100px;
+.chat-input-row {
   display: flex;
   gap: 4px;
-  z-index: 85;
 }
 
-.chat-input-bar input {
-  width: 150px;
+.chat-input-row input {
+  width: 130px;
   padding: 8px 12px;
   border: 1px solid rgba(255,255,255,0.3);
   border-radius: 20px;
@@ -729,8 +754,8 @@ input[type="text"]::placeholder { color: #d1d5db; }
   box-shadow: none;
   text-align: left;
 }
-.chat-input-bar input::placeholder { color: rgba(255,255,255,0.5); }
-.chat-input-bar input:focus { border-color: #f9a8d4; }
+.chat-input-row input::placeholder { color: rgba(255,255,255,0.5); }
+.chat-input-row input:focus { border-color: #f9a8d4; }
 
 .btn-chat-send {
   padding: 8px 12px !important;
@@ -748,13 +773,13 @@ input[type="text"]::placeholder { color: #d1d5db; }
 }
 
 @media (max-width: 768px) {
-  .chat-area { width: 160px; right: 8px; bottom: 120px; height: 200px; }
-  .stamp-bar { right: 8px; bottom: 120px; max-width: 160px; }
+  .chat-area { width: 160px; left: 8px; right: auto; bottom: 100px; height: 180px; }
+  .stamp-bar { max-width: 160px; }
   .stamp-btn { width: 32px; height: 32px; font-size: 16px; }
-  .chat-input-bar { right: 8px; bottom: 84px; }
-  .chat-input-bar input { width: 120px; padding: 6px 10px; font-size: 12px; }
+  .chat-input-row input { width: 100px; padding: 6px 10px; font-size: 12px; }
   .chat-bubble { font-size: 11px; padding: 4px 8px; }
   .chat-bubble.stamp { font-size: 40px; }
+  .btn-chat-toggle { width: 36px; height: 36px; font-size: 16px; }
 }
 
 /* Error toast */

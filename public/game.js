@@ -771,6 +771,14 @@
       if (e.key === 'Enter') sendChat();
     });
 
+    // Chat toggle
+    const chatToggle = $('btn-chat-toggle');
+    const chatPanel = $('chat-panel');
+    chatToggle.addEventListener('click', () => {
+      chatPanel.classList.toggle('hidden');
+      chatToggle.classList.toggle('active');
+    });
+
     // Stamps
     document.querySelectorAll('.stamp-btn').forEach(btn => {
       btn.addEventListener('click', () => {
