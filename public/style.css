@@ -69,18 +69,19 @@ body {
   justify-content: flex-start;
   background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 30%, #fbcfe8 60%, #f9a8d4 100%);
   overflow-y: auto;
-  padding: 20px 0;
+  padding: 16px 0;
 }
 
 .lobby-container {
   text-align: center;
   max-width: 400px;
   width: 90%;
+  margin: 0 auto;
 }
 
 .lobby-logo {
-  width: 200px;
-  max-width: 60%;
+  width: 160px;
+  max-width: 50%;
   height: auto;
   margin-bottom: 4px;
   border-radius: 16px;
