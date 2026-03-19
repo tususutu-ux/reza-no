@@ -16,7 +16,8 @@
       "Bash(pip3 install:*)",
       "Bash(python3 create_pdf.py)",
       "Bash(node test-draw2.js)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(ls /Users/takeshi/Desktop/reza-no/*.png /Users/takeshi/Desktop/reza-no/*.jpg /Users/takeshi/Desktop/reza-no/*.jpeg /Users/takeshi/Desktop/reza-no/*.webp)"
     ]
   }
 }

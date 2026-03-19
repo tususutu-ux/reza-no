@@ -76,6 +76,14 @@ body {
   width: 90%;
 }
 
+.lobby-logo {
+  width: 250px;
+  max-width: 80%;
+  height: auto;
+  margin-bottom: 4px;
+  border-radius: 16px;
+}
+
 .title {
   font-size: 48px;
   font-weight: 900;
