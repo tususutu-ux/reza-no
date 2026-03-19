@@ -73,6 +73,12 @@ class Room {
     const player = this.players.get(oldSocketId);
     if (!player) return null;
 
+    // Clear disconnect timer
+    if (player._disconnectTimer) {
+      clearTimeout(player._disconnectTimer);
+      player._disconnectTimer = null;
+    }
+
     // Update mappings
     this.players.delete(oldSocketId);
     player.socketId = newSocketId;
@@ -92,14 +98,20 @@ class Room {
     const player = this.players.get(socketId);
     if (!player) return null;
 
-    if (this.game && this.game.state === 'playing') {
-      // Mark as disconnected, keep in game
-      player.connected = false;
-      return { disconnected: true, player };
-    } else {
-      // In lobby, just remove
-      return { removed: true, player: this.removePlayer(socketId) };
+    // Always keep player for reconnection (both lobby and game)
+    player.connected = false;
+
+    // Set a timeout to actually remove if they don't reconnect
+    if (!this.game || this.game.state !== 'playing') {
+      // In lobby: remove after 30 seconds if not reconnected
+      player._disconnectTimer = setTimeout(() => {
+        if (!player.connected) {
+          this.removePlayer(socketId);
+        }
+      }, 30000);
     }
+
+    return { disconnected: true, player };
   }
 }
 

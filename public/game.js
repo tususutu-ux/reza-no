@@ -769,6 +769,24 @@
       });
     });
 
+    // Share button - share URL with room code via LINE or native share
+    const btnShare = $('btn-share');
+    if (btnShare) {
+      btnShare.addEventListener('click', () => {
+        const code = roomCodeDisplay.textContent;
+        const shareUrl = `${location.origin}?room=${code}`;
+        const shareText = `リザーノで遊ぼう！\nルームコード: ${code}\n${shareUrl}`;
+
+        if (navigator.share) {
+          navigator.share({ title: 'リザーノ', text: shareText, url: shareUrl }).catch(() => {});
+        } else {
+          // Fallback: open LINE share
+          const lineUrl = `https://line.me/R/msg/text/?${encodeURIComponent(shareText)}`;
+          window.open(lineUrl, '_blank');
+        }
+      });
+    }
+
     btnStart.addEventListener('click', () => {
       currentRound = 0;
       socket.emit('start-game', { roomCode });
@@ -893,6 +911,15 @@
   function init() {
     connectSocket();
     setupUIListeners();
+
+    // Auto-fill room code from URL parameter (e.g., ?room=ABCD)
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlRoom = urlParams.get('room');
+    if (urlRoom) {
+      roomCodeInput.value = urlRoom.toUpperCase();
+      // Clean the URL without reloading
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }
 
   document.addEventListener('DOMContentLoaded', init);

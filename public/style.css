@@ -168,6 +168,13 @@ input[type="text"]::placeholder { color: #d1d5db; }
 }
 .player-tag.host { border-color: #ec4899; color: #be185d; }
 
+.btn-share {
+  background: linear-gradient(135deg, #06c755, #00b341) !important;
+  color: white;
+  font-size: 14px;
+  width: 100%;
+}
+
 .lobby-actions {
   display: flex;
   gap: 12px;
