@@ -54,8 +54,16 @@
 
     <!-- Center play area -->
     <div class="play-area">
-      <div id="draw-pile" class="card card-back draw-pile" title="カードを引く">
-        <span>引く</span>
+      <div id="draw-pile" class="draw-pile-stack" title="カードを引く">
+        <div class="draw-pile-cards">
+          <div class="card card-back stack-card stack-3"></div>
+          <div class="card card-back stack-card stack-2"></div>
+          <div class="card card-back stack-card stack-1"></div>
+          <div class="card card-back stack-card stack-0">
+            <span class="draw-label">引く</span>
+          </div>
+        </div>
+        <div id="draw-pile-count" class="draw-pile-badge">93</div>
       </div>
       <div id="discard-pile" class="discard-pile">
         <div id="top-card" class="card"></div>

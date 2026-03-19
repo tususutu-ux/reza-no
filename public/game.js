@@ -390,8 +390,25 @@
     const colorMap = { red: '#ef4444', blue: '#3b82f6', green: '#22c55e', yellow: '#eab308' };
     currentColorIndicator.style.backgroundColor = colorMap[state.currentColor] || '#666';
 
-    // Deck count
-    deckCount.textContent = `山札: ${state.drawPileCount}`;
+    // Deck count - update badge and stack visibility
+    const badge = $('draw-pile-count');
+    if (badge) badge.textContent = state.drawPileCount;
+    const drawStack = $('draw-pile');
+    if (drawStack) {
+      if (state.drawPileCount <= 10) {
+        drawStack.classList.add('draw-pile-low');
+      } else {
+        drawStack.classList.remove('draw-pile-low');
+      }
+      // Hide extra stack cards when deck is low
+      const stackCards = drawStack.querySelectorAll('.stack-card');
+      if (stackCards.length >= 4) {
+        stackCards[0].style.display = state.drawPileCount > 20 ? '' : 'none';
+        stackCards[1].style.display = state.drawPileCount > 10 ? '' : 'none';
+        stackCards[2].style.display = state.drawPileCount > 5 ? '' : 'none';
+      }
+    }
+    deckCount.textContent = `${state.drawPileCount}枚`;
 
     // Turn indicator
     if (state.myTurn) {

@@ -327,12 +327,59 @@ input[type="text"]::placeholder { color: var(--text-dim); }
   border: 2px solid #636e72;
 }
 
-/* Draw pile */
-.draw-pile {
+/* Draw pile stack */
+.draw-pile-stack {
+  position: relative;
   cursor: pointer;
-  font-size: 14px;
+  transition: transform 0.2s;
 }
-.draw-pile:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.5); }
+.draw-pile-stack:hover { transform: translateY(-4px); }
+
+.draw-pile-cards {
+  position: relative;
+  width: var(--card-width);
+  height: var(--card-height);
+}
+
+.stack-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.stack-card.stack-3 { transform: translate(3px, -3px) rotate(2deg); }
+.stack-card.stack-2 { transform: translate(2px, -2px) rotate(-1deg); }
+.stack-card.stack-1 { transform: translate(1px, -1px) rotate(0.5deg); }
+.stack-card.stack-0 { transform: translate(0, 0); }
+
+.draw-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.draw-pile-badge {
+  position: absolute;
+  bottom: -8px;
+  right: -8px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  font-size: 12px;
+  font-weight: 800;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  z-index: 5;
+}
+
+.draw-pile-low .draw-pile-badge {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  animation: pulse 1s infinite;
+}
 
 /* Discard pile */
 .discard-pile {
