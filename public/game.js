@@ -368,7 +368,7 @@
       scores.breakdown.forEach(entry => {
         const row = document.createElement('div');
         row.className = 'score-row';
-        row.innerHTML = `<span>${entry.name} (残り${entry.cardsLeft}枚)</span><span>-${entry.penalty}点</span>`;
+        row.innerHTML = `<span>${entry.name} (残り${entry.cardsLeft}枚)</span><span>+0点</span>`;
         resultScores.appendChild(row);
       });
     }
