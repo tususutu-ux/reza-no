@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>レザーノ - UNO風カードゲーム</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <!-- ===== LOBBY SCREEN ===== -->
+  <div id="lobby-screen" class="screen active">
+    <div class="lobby-container">
+      <h1 class="title">レザーノ</h1>
+      <p class="subtitle">UNO風オンラインカードゲーム</p>
+
+      <div id="lobby-menu" class="lobby-section">
+        <input type="text" id="player-name" placeholder="名前を入力" maxlength="10" autocomplete="off">
+        <button id="btn-create" class="btn btn-primary">部屋を作る</button>
+        <div class="join-row">
+          <input type="text" id="room-code-input" placeholder="ルームコード" maxlength="4" autocomplete="off" style="text-transform: uppercase;">
+          <button id="btn-join" class="btn btn-secondary">参加</button>
+        </div>
+      </div>
+
+      <div id="lobby-room" class="lobby-section hidden">
+        <div class="room-info">
+          <span>ルームコード:</span>
+          <span id="room-code-display" class="room-code"></span>
+          <button id="btn-copy" class="btn btn-small" title="コピー">📋</button>
+        </div>
+        <div id="player-list" class="player-list"></div>
+        <div class="lobby-actions">
+          <button id="btn-start" class="btn btn-primary hidden">ゲーム開始</button>
+          <button id="btn-leave" class="btn btn-danger">退出</button>
+        </div>
+        <p id="waiting-msg" class="waiting-msg">プレイヤーを待っています...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== GAME SCREEN ===== -->
+  <div id="game-screen" class="screen hidden">
+    <!-- Opponents area -->
+    <div id="opponents-area" class="opponents-area"></div>
+
+    <!-- Game info bar -->
+    <div class="game-info-bar">
+      <div class="direction-indicator" id="direction-indicator">
+        <span id="direction-arrow">↻</span>
+      </div>
+      <div class="current-color-indicator" id="current-color-indicator"></div>
+      <div class="deck-count" id="deck-count">山札: 0</div>
+    </div>
+
+    <!-- Center play area -->
+    <div class="play-area">
+      <div id="draw-pile" class="card card-back draw-pile" title="カードを引く">
+        <span>引く</span>
+      </div>
+      <div id="discard-pile" class="discard-pile">
+        <div id="top-card" class="card"></div>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="action-buttons">
+      <button id="btn-uno" class="btn btn-uno" disabled>UNO!</button>
+      <button id="btn-pass" class="btn btn-pass hidden">パス</button>
+    </div>
+
+    <!-- Player's hand -->
+    <div id="my-hand" class="my-hand"></div>
+
+    <!-- Turn indicator -->
+    <div id="turn-indicator" class="turn-indicator hidden"></div>
+
+    <!-- Color picker modal -->
+    <div id="color-picker" class="modal hidden">
+      <div class="modal-content">
+        <p>色を選んでください</p>
+        <div class="color-options">
+          <button class="color-btn" data-color="red" style="background:#ef4444;"></button>
+          <button class="color-btn" data-color="blue" style="background:#3b82f6;"></button>
+          <button class="color-btn" data-color="green" style="background:#22c55e;"></button>
+          <button class="color-btn" data-color="yellow" style="background:#eab308;"></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- UNO challenge popup -->
+    <div id="uno-challenge" class="uno-challenge hidden"></div>
+
+    <!-- Notification area -->
+    <div id="notifications" class="notifications"></div>
+  </div>
+
+  <!-- ===== RESULT SCREEN ===== -->
+  <div id="result-screen" class="screen hidden">
+    <div class="result-container">
+      <h2 id="result-title" class="result-title"></h2>
+      <div id="result-scores" class="result-scores"></div>
+      <div class="result-actions">
+        <button id="btn-play-again" class="btn btn-primary">もう一回</button>
+        <button id="btn-back-lobby" class="btn btn-secondary">ロビーに戻る</button>
+      </div>
+    </div>
+    <div id="confetti" class="confetti"></div>
+  </div>
+
+  <!-- Error toast -->
+  <div id="error-toast" class="error-toast hidden"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/game.js"></script>
+</body>
+</html>

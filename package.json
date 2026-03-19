@@ -1,0 +1,23 @@
+{
+  "name": "reza-no",
+  "version": "1.0.0",
+  "description": "UNO-like multiplayer card game",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "setup": "npm install && echo '' && echo '✅ セットアップ完了！' && echo '👉 npm run dev で起動してね' && echo '🌐 http://localhost:3000 をブラウザで開いてね' && echo ''",
+    "go": "npm install --silent && node server.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3"
+  }
+}
