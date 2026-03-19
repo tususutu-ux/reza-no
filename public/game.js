@@ -417,8 +417,16 @@
   }
 
   function updateActionButtons(state) {
-    // UNO button
-    btnUno.disabled = !(state.myTurn && myHand.length === 2);
+    // UNO button - show prominently when player has 2 cards
+    const shouldShowUno = state.myTurn && myHand.length === 2;
+    btnUno.disabled = !shouldShowUno;
+    if (shouldShowUno) {
+      btnUno.classList.add('uno-active');
+      btnUno.textContent = 'UNO! 押して!';
+    } else {
+      btnUno.classList.remove('uno-active');
+      btnUno.textContent = 'UNO!';
+    }
 
     // Pass button
     if (state.canPass) {
@@ -461,9 +469,10 @@
   function showUnoChallenge(targetPlayerId) {
     unoChallenge.classList.remove('hidden');
     unoChallenge.innerHTML = '';
+    const targetPlayer = gameState?.players.find(p => p.id === targetPlayerId);
     const btn = document.createElement('button');
-    btn.className = 'btn';
-    btn.textContent = 'UNOチャレンジ！';
+    btn.className = 'btn uno-challenge-btn';
+    btn.textContent = `${targetPlayer?.name || '?'} UNO忘れてる! 指摘する!`;
     btn.addEventListener('click', () => {
       socket.emit('challenge-uno', { roomCode, targetPlayerId });
       unoChallenge.classList.add('hidden');
