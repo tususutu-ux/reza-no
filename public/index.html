@@ -29,6 +29,31 @@
           <button id="btn-copy" class="btn btn-small" title="コピー">📋</button>
         </div>
         <div id="player-list" class="player-list"></div>
+        <!-- Round settings (host only) -->
+        <div id="round-settings" class="round-settings hidden">
+          <div class="setting-label">ラウンド数</div>
+          <div class="round-options">
+            <button class="btn round-btn active" data-rounds="1">1</button>
+            <button class="btn round-btn" data-rounds="3">3</button>
+            <button class="btn round-btn" data-rounds="5">5</button>
+            <button class="btn round-btn" data-rounds="10">10</button>
+          </div>
+        </div>
+
+        <!-- Rules summary -->
+        <div id="rules-box" class="rules-box hidden">
+          <div class="rules-title">ルール</div>
+          <ul class="rules-list">
+            <li>色か数字が同じカードを出せる</li>
+            <li>出せるカードがなければ山札から引く</li>
+            <li>残り1枚になったらUNOボタンを押す！</li>
+            <li>先に手札をなくした人がラウンド勝利</li>
+            <li>勝者は他の人の残りカードの点数をGET</li>
+            <li class="rules-score">数字=額面 / Skip,+2,Reverse=20点 / Wild=50点</li>
+            <li>全ラウンド終了後、合計点が一番多い人が優勝！</li>
+          </ul>
+        </div>
+
         <div class="lobby-actions">
           <button id="btn-start" class="btn btn-primary hidden">ゲーム開始</button>
           <button id="btn-leave" class="btn btn-danger">退出</button>

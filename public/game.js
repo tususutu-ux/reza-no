@@ -9,6 +9,8 @@
   let isHost = false;
   let gameState = null;
   let pendingWildCardId = null;
+  let totalRounds = 1;
+  let currentRound = 0;
 
   // === Card Display ===
   const VALUE_DISPLAY = {
@@ -126,10 +128,18 @@
   }
 
   // === Lobby Handlers ===
+  function showLobbySettings() {
+    const roundSettings = $('round-settings');
+    const rulesBox = $('rules-box');
+    if (isHost && roundSettings) roundSettings.classList.remove('hidden');
+    if (rulesBox) rulesBox.classList.remove('hidden');
+  }
+
   function onRoomCreated({ roomCode: code, playerId }) {
     myId = playerId;
     roomCode = code;
     isHost = true;
+    currentRound = 0;
     sessionStorage.setItem('roomCode', code);
     sessionStorage.setItem('playerId', playerId);
 
@@ -137,16 +147,17 @@
     lobbyMenu.classList.add('hidden');
     lobbyRoom.classList.remove('hidden');
     btnStart.classList.remove('hidden');
+    showLobbySettings();
     updatePlayerList([{ name: playerNameInput.value.trim(), id: playerId, isHost: true }]);
   }
 
   function onRoomJoined({ roomCode: code, playerId, players }) {
     myId = playerId;
     roomCode = code;
+    currentRound = 0;
     sessionStorage.setItem('roomCode', code);
     sessionStorage.setItem('playerId', playerId);
 
-    // Check if I'm the host
     const me = players.find(p => p.id === playerId);
     isHost = me ? me.isHost : false;
 
@@ -155,6 +166,7 @@
     lobbyRoom.classList.remove('hidden');
     if (isHost) btnStart.classList.remove('hidden');
     else btnStart.classList.add('hidden');
+    showLobbySettings();
     updatePlayerList(players);
   }
 
@@ -184,6 +196,7 @@
 
   // === Game Handlers ===
   function onGameStarted(state) {
+    currentRound++;
     gameState = state;
     myHand = state.myHand;
     showScreen(gameScreen);
@@ -266,30 +279,69 @@
   function onGameOver(scores) {
     showScreen(resultScreen);
 
+    const isLastRound = currentRound >= totalRounds;
     const isWinner = scores.winnerId === myId;
-    resultTitle.textContent = isWinner ? '🎉 あなたの勝ち！' : `${scores.winnerName} さんの勝ち！`;
+
+    if (isLastRound && totalRounds > 1) {
+      // Final results - show total scores
+      resultTitle.textContent = `全${totalRounds}ラウンド終了！`;
+    } else if (totalRounds > 1) {
+      resultTitle.textContent = `ラウンド ${currentRound}/${totalRounds} - ${scores.winnerName} の勝ち！`;
+    } else {
+      resultTitle.textContent = isWinner ? '🎉 あなたの勝ち！' : `${scores.winnerName} さんの勝ち！`;
+    }
 
     resultScores.innerHTML = '';
 
-    // Winner row
-    const winnerRow = document.createElement('div');
-    winnerRow.className = 'score-row winner';
-    winnerRow.innerHTML = `<span>👑 ${scores.winnerName}</span><span>+${scores.winnerScore}点</span>`;
-    resultScores.appendChild(winnerRow);
+    if (totalRounds > 1 && scores.totalScores) {
+      // Show round result header
+      const roundHeader = document.createElement('div');
+      roundHeader.className = 'score-row';
+      roundHeader.style.background = 'transparent';
+      roundHeader.style.boxShadow = 'none';
+      roundHeader.style.fontWeight = '700';
+      roundHeader.style.fontSize = '13px';
+      roundHeader.innerHTML = `<span>このラウンド: ${scores.winnerName} +${scores.winnerScore}点</span>`;
+      resultScores.appendChild(roundHeader);
 
-    // Other players
-    scores.breakdown.forEach(entry => {
-      const row = document.createElement('div');
-      row.className = 'score-row';
-      row.innerHTML = `<span>${entry.name} (残り${entry.cardsLeft}枚)</span><span>-${entry.penalty}点</span>`;
-      resultScores.appendChild(row);
-    });
+      // Show cumulative scores sorted by total
+      const sortedPlayers = Object.entries(scores.totalScores)
+        .map(([id, total]) => {
+          const name = id === scores.winnerId ? scores.winnerName
+            : scores.breakdown.find(b => b.playerId === id)?.name
+            || gameState?.players.find(p => p.id === id)?.name || '?';
+          return { id, name, total };
+        })
+        .sort((a, b) => b.total - a.total);
 
-    if (isWinner) spawnConfetti();
+      sortedPlayers.forEach((entry, i) => {
+        const row = document.createElement('div');
+        row.className = 'score-row' + (i === 0 ? ' winner' : '');
+        const icon = i === 0 ? '👑 ' : '';
+        row.innerHTML = `<span>${icon}${entry.name}</span><span>${entry.total}点</span>`;
+        resultScores.appendChild(row);
+      });
+    } else {
+      // Single round - show as before
+      const winnerRow = document.createElement('div');
+      winnerRow.className = 'score-row winner';
+      winnerRow.innerHTML = `<span>👑 ${scores.winnerName}</span><span>+${scores.winnerScore}点</span>`;
+      resultScores.appendChild(winnerRow);
 
-    // Show play again button only for host
+      scores.breakdown.forEach(entry => {
+        const row = document.createElement('div');
+        row.className = 'score-row';
+        row.innerHTML = `<span>${entry.name} (残り${entry.cardsLeft}枚)</span><span>-${entry.penalty}点</span>`;
+        resultScores.appendChild(row);
+      });
+    }
+
+    if (isWinner || (isLastRound && totalRounds > 1)) spawnConfetti();
+
+    // Show play again / next round button
     if (isHost) {
       btnPlayAgain.classList.remove('hidden');
+      btnPlayAgain.textContent = isLastRound ? 'もう一回' : `次のラウンドへ (${currentRound}/${totalRounds})`;
     } else {
       btnPlayAgain.classList.add('hidden');
     }
@@ -577,7 +629,17 @@
     });
 
     btnStart.addEventListener('click', () => {
+      currentRound = 0;
       socket.emit('start-game', { roomCode });
+    });
+
+    // Round selection buttons
+    document.querySelectorAll('.round-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.round-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        totalRounds = parseInt(btn.dataset.rounds);
+      });
     });
 
     btnLeave.addEventListener('click', () => {

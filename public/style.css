@@ -164,6 +164,73 @@ input[type="text"]::placeholder { color: #d1d5db; }
   justify-content: center;
 }
 
+/* Round settings */
+.round-settings {
+  padding: 12px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(236, 72, 153, 0.1);
+}
+.setting-label {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+.round-options {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.round-btn {
+  width: 48px;
+  height: 40px;
+  padding: 0 !important;
+  font-size: 16px !important;
+  font-weight: 700;
+  border-radius: 10px !important;
+  background: var(--bg-medium) !important;
+  color: var(--text) !important;
+  border: 2px solid transparent;
+}
+.round-btn.active {
+  background: linear-gradient(135deg, #ec4899, #f472b6) !important;
+  color: white !important;
+  border-color: #be185d;
+}
+
+/* Rules box */
+.rules-box {
+  padding: 12px 16px;
+  background: white;
+  border-radius: 16px;
+  text-align: left;
+  box-shadow: 0 2px 8px rgba(236, 72, 153, 0.1);
+}
+.rules-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #ec4899;
+  margin-bottom: 6px;
+  text-align: center;
+}
+.rules-list {
+  list-style: none;
+  padding: 0;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.8;
+}
+.rules-list li::before {
+  content: '- ';
+  color: #ec4899;
+  font-weight: 700;
+}
+.rules-score {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
 .waiting-msg {
   color: var(--text-dim);
   font-size: 14px;
