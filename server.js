@@ -48,6 +48,28 @@ app.get('/api/leaderboard', (req, res) => {
 
 const roomManager = new RoomManager();
 
+// Check and trigger cat event after game actions
+function checkCatEvent(room, roomCode) {
+  if (!room || !room.game || !room.game.catEventPending) return;
+
+  const catResult = room.game.triggerCatEvent();
+  if (catResult && catResult.success) {
+    // Broadcast cat event to all players
+    io.to(roomCode).emit('cat-event', {});
+
+    // Send updated state (with shuffled hands) after animation delay
+    setTimeout(() => {
+      if (room.game) {
+        for (const [sid, player] of room.players) {
+          if (player.connected) {
+            io.to(sid).emit('game-state', room.game.getStateForPlayer(player.id));
+          }
+        }
+      }
+    }, 2500); // Wait for cat animation to finish
+  }
+}
+
 io.on('connection', (socket) => {
   console.log(`Connected: ${socket.id}`);
 
@@ -166,6 +188,9 @@ io.on('connection', (socket) => {
         ...result.scores,
         totalScores: Object.fromEntries(room.totalScores),
       });
+    } else {
+      // Check for cat event (ultimate mode only)
+      checkCatEvent(room, roomCode);
     }
   });
 

@@ -16,6 +16,8 @@ class GameManager {
     this.pendingDrawType = null; // 'draw2' or 'wild4' - what type can be stacked
     this.gameMode = gameMode; // 'normal' or 'ultimate'
     this.ballUsed = new Set(); // Track who used their ball this round
+    this.turnCount = 0; // Track turns for cat event
+    this.catEventPending = false; // Flag for cat event
   }
 
   startGame() {
@@ -116,6 +118,14 @@ class GameManager {
   advanceTurn() {
     this.currentPlayerIndex = this.getNextPlayerIndex();
     this.drawnThisTurn = false;
+    this.turnCount++;
+
+    // Cat event: random chance in ultimate mode (roughly every 8-15 turns)
+    if (this.gameMode === 'ultimate' && this.turnCount >= 5) {
+      if (Math.random() < 0.12) { // ~12% chance per turn after turn 5
+        this.catEventPending = true;
+      }
+    }
   }
 
   // Check if a card can be played considering draw stacking
@@ -388,6 +398,18 @@ class GameManager {
       throwerName: currentPlayer.name,
       swappedCount: swapCount,
     };
+  }
+
+  triggerCatEvent() {
+    if (this.state !== 'playing') return null;
+    this.catEventPending = false;
+
+    // Shuffle every player's hand
+    for (const player of this.players) {
+      shuffleArray(player.hand);
+    }
+
+    return { success: true };
   }
 
   callUno(playerId) {

@@ -644,6 +644,62 @@ input[type="text"]::placeholder { color: #d1d5db; }
   box-shadow: 0 0 20px rgba(249, 115, 22, 0.6) !important;
 }
 
+/* Cat event animation */
+.cat-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  pointer-events: none;
+  overflow: hidden;
+}
+.cat-overlay.hidden { display: none; }
+
+.cat-message {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 22px;
+  font-weight: 900;
+  color: white;
+  background: rgba(0,0,0,0.7);
+  padding: 12px 28px;
+  border-radius: 20px;
+  white-space: nowrap;
+  animation: catMsgAnim 2.5s ease-out forwards;
+  z-index: 2;
+}
+
+.cat-sprite {
+  position: absolute;
+  bottom: 30%;
+  font-size: 80px;
+  animation: catRun 2s ease-in-out forwards;
+  z-index: 1;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+}
+
+@keyframes catRun {
+  0% { left: -100px; transform: scaleX(1) rotate(0deg); }
+  30% { transform: scaleX(1) rotate(-5deg); }
+  50% { left: 50%; transform: scaleX(1) rotate(0deg) scale(1.2); }
+  70% { transform: scaleX(1) rotate(5deg); }
+  100% { left: calc(100% + 100px); transform: scaleX(1) rotate(0deg); }
+}
+
+@keyframes catMsgAnim {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+  15% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+  25% { transform: translate(-50%, -50%) scale(1); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -60%) scale(0.8); }
+}
+
+/* Shuffle all hands during cat event */
+.my-hand.cat-shuffle .card {
+  animation: handShuffle 0.4s ease-in-out 4;
+}
+
 /* Turn indicator */
 .turn-indicator {
   position: fixed;

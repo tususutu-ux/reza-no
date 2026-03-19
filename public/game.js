@@ -185,6 +185,7 @@
     socket.on('player-reconnected', onPlayerReconnected);
     socket.on('chat-message', onChatMessage);
     socket.on('ball-thrown', onBallThrown);
+    socket.on('cat-event', onCatEvent);
 
     socket.on('error', onError);
 
@@ -524,6 +525,31 @@
         }
       });
     }, 600);
+  }
+
+  function onCatEvent() {
+    const catOverlay = $('cat-overlay');
+    if (catOverlay) {
+      catOverlay.classList.remove('hidden');
+
+      // Add shuffle animation to own hand
+      const handEl = $('my-hand');
+      if (handEl) {
+        handEl.classList.add('cat-shuffle');
+        setTimeout(() => handEl.classList.remove('cat-shuffle'), 2000);
+      }
+
+      // Add shuffling to all opponents
+      document.querySelectorAll('.opponent').forEach(opp => {
+        opp.classList.add('shuffling');
+        setTimeout(() => opp.classList.remove('shuffling'), 2000);
+      });
+
+      // Hide overlay after animation
+      setTimeout(() => {
+        catOverlay.classList.add('hidden');
+      }, 2500);
+    }
   }
 
   function onError({ message }) {
