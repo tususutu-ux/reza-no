@@ -224,7 +224,13 @@
         if (state.canStackDraw) {
           showTurnIndicator(`${stackType}を出すか ${state.pendingDrawCount}枚引く！`);
         } else {
+          // Auto-draw after a short delay so player sees what happened
           showTurnIndicator(`${state.pendingDrawCount}枚引きます...`);
+          setTimeout(() => {
+            if (gameState && gameState.myTurn && gameState.pendingDrawCount > 0 && !gameState.canStackDraw) {
+              socket.emit('draw-card', { roomCode });
+            }
+          }, 1500);
         }
       } else {
         showTurnIndicator('あなたのターンです！');
