@@ -141,10 +141,14 @@ io.on('connection', (socket) => {
     if (result.error) return socket.emit('error', { message: result.error });
 
     // Tell the drawing player what they got
-    socket.emit('your-draw', { card: result.card, canPlay: result.canPlay });
+    socket.emit('your-draw', {
+      drawnCards: result.drawnCards,
+      playableCard: result.playableCard,
+      drawCount: result.drawCount,
+    });
 
-    // Tell everyone else someone drew
-    socket.to(roomCode).emit('card-drawn', { playerId });
+    // Tell everyone else someone drew (and how many)
+    socket.to(roomCode).emit('card-drawn', { playerId, drawCount: result.drawCount });
 
     // Send updated state to each player
     for (const [sid, player] of room.players) {

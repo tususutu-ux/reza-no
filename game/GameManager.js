@@ -240,16 +240,36 @@ class GameManager {
       return { error: 'このターンは既にカードを引いています' };
     }
 
-    const card = this.drawFromDeck();
-    currentPlayer.hand.push(card);
+    // Keep drawing until a playable card is found
+    const topCard = this.discardPile[this.discardPile.length - 1];
+    const drawnCards = [];
+    let playableCard = null;
+
+    // Safety limit to prevent infinite loop (max 50 cards)
+    const maxDraw = Math.min(50, this.deck.length + this.discardPile.length - 1);
+    for (let i = 0; i < maxDraw; i++) {
+      if (this.deck.length === 0 && this.discardPile.length <= 1) break;
+      const card = this.drawFromDeck();
+      currentPlayer.hand.push(card);
+      drawnCards.push(card);
+      if (canPlayOn(card, topCard, this.currentColor)) {
+        playableCard = card;
+        break;
+      }
+    }
+
     this.drawnThisTurn = true;
 
-    const topCard = this.discardPile[this.discardPile.length - 1];
-    const canPlay = canPlayOn(card, topCard, this.currentColor);
+    // If no playable card found (deck exhausted), auto-pass
+    if (!playableCard) {
+      this.advanceTurn();
+    }
 
     return {
-      card,
-      canPlay,
+      drawnCards,
+      playableCard,
+      drawCount: drawnCards.length,
+      autoPassed: !playableCard,
     };
   }
 
@@ -352,7 +372,7 @@ class GameManager {
       myTurn: currentPlayer.id === playerId,
       state: this.state,
       canDraw: currentPlayer.id === playerId && !this.drawnThisTurn,
-      canPass: currentPlayer.id === playerId && this.drawnThisTurn,
+      canPass: false, // No longer needed - draw until playable
       drawPileCount: this.deck.length,
     };
   }

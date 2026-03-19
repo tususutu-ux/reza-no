@@ -235,16 +235,21 @@
     });
   }
 
-  function onCardDrawn({ playerId }) {
+  function onCardDrawn({ playerId, drawCount }) {
     if (playerId !== myId) {
       const p = gameState?.players.find(pl => pl.id === playerId);
-      // Subtle notification (optional)
+      if (drawCount > 1) {
+        showNotification(`${p?.name || '?'} ${drawCount}枚引いた！`, 'draw');
+      }
     }
   }
 
-  function onYourDraw({ card, canPlay }) {
-    if (canPlay) {
-      showNotification('引いたカードが出せます！', 'draw');
+  function onYourDraw({ drawnCards, playableCard, drawCount }) {
+    if (drawCount > 1) {
+      showNotification(`${drawCount}枚引きました`, 'draw');
+    }
+    if (playableCard) {
+      showNotification('出せるカードが来た！', 'draw');
     }
   }
 
