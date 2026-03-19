@@ -292,11 +292,19 @@ io.on('connection', (socket) => {
         }
       } else if (result.removed) {
         const room = roomManager.getRoom(result.roomCode);
-        io.to(result.roomCode).emit('player-left', {
-          playerId: result.player?.id,
-          playerName: result.player?.name,
-          players: room ? room.getPlayerList() : [],
-        });
+        if (room) {
+          // Send updated player list with new host info to each player
+          const playerList = room.getPlayerList();
+          for (const [sid, player] of room.players) {
+            const me = playerList.find(p => p.id === player.id);
+            io.to(sid).emit('player-left', {
+              playerId: result.player?.id,
+              playerName: result.player?.name,
+              players: playerList,
+              youAreHost: me?.isHost || false,
+            });
+          }
+        }
       }
     }
   });

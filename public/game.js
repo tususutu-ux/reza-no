@@ -174,7 +174,15 @@
     updatePlayerList(players);
   }
 
-  function onPlayerLeft({ players }) {
+  function onPlayerLeft({ players, youAreHost }) {
+    if (youAreHost !== undefined) {
+      isHost = youAreHost;
+      if (isHost) {
+        btnStart.classList.remove('hidden');
+        const roundSettings = $('round-settings');
+        if (roundSettings) roundSettings.classList.remove('hidden');
+      }
+    }
     updatePlayerList(players);
   }
 
