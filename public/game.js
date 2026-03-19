@@ -210,9 +210,17 @@
     gameState = state;
     myHand = state.myHand;
     renderGameState(state);
-    // Always show turn indicator when it's my turn
     if (state.myTurn) {
-      showTurnIndicator('あなたのターンです！');
+      if (state.pendingDrawCount > 0) {
+        const stackType = state.pendingDrawType === 'draw2' ? '+2' : '+4';
+        if (state.canStackDraw) {
+          showTurnIndicator(`${stackType}を出すか ${state.pendingDrawCount}枚引く！`);
+        } else {
+          showTurnIndicator(`${state.pendingDrawCount}枚引きます...`);
+        }
+      } else {
+        showTurnIndicator('あなたのターンです！');
+      }
     }
   }
 
@@ -231,6 +239,14 @@
         case 'draw2': {
           const p = gameState?.players.find(pl => pl.id === effect.playerId);
           showNotification(`${p?.name || '?'} +2！`, 'draw');
+          break;
+        }
+        case 'draw2-stacked': {
+          showNotification(`+2 スタック！ 合計${effect.count}枚！`, 'draw');
+          break;
+        }
+        case 'wild4-stacked': {
+          showNotification(`+4 スタック！ 合計${effect.count}枚！`, 'draw');
           break;
         }
         case 'wild4': {
@@ -258,11 +274,13 @@
     }
   }
 
-  function onYourDraw({ drawnCards, playableCard, drawCount }) {
-    if (drawCount > 1) {
+  function onYourDraw({ drawnCards, playableCard, drawCount, wasPenalty, penaltyCount }) {
+    if (wasPenalty) {
+      showNotification(`ペナルティ！${penaltyCount}枚引きました`, 'skip');
+    } else if (drawCount > 1) {
       showNotification(`${drawCount}枚引きました`, 'draw');
     }
-    if (playableCard) {
+    if (playableCard && !wasPenalty) {
       showNotification('出せるカードが来た！', 'draw');
     }
   }
@@ -432,7 +450,13 @@
 
     cards.forEach(card => {
       const el = document.createElement('div');
-      const playable = state.myTurn && canPlayOn(card, topCard, currentColor);
+      let playable;
+      if (state.pendingDrawCount > 0) {
+        // When there's a pending draw, only matching draw cards can be played
+        playable = state.myTurn && card.value === state.pendingDrawType;
+      } else {
+        playable = state.myTurn && canPlayOn(card, topCard, currentColor);
+      }
       el.className = 'card ' + (card.color === 'wild' ? 'wild' : card.color) +
         (playable ? ' playable' : ' not-playable');
       el.innerHTML = `
@@ -487,6 +511,21 @@
       }
     }
     deckCount.textContent = `${state.drawPileCount}枚`;
+
+    // Pending draw indicator
+    let pendingEl = $('pending-draw-indicator');
+    if (!pendingEl) {
+      pendingEl = document.createElement('div');
+      pendingEl.id = 'pending-draw-indicator';
+      pendingEl.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-80px);background:rgba(239,68,68,0.95);color:white;padding:8px 20px;border-radius:20px;font-size:18px;font-weight:800;z-index:95;pointer-events:none;display:none;animation:pulse 0.8s infinite;';
+      document.getElementById('game-screen').appendChild(pendingEl);
+    }
+    if (state.pendingDrawCount > 0) {
+      pendingEl.textContent = `+${state.pendingDrawCount} スタック中！`;
+      pendingEl.style.display = 'block';
+    } else {
+      pendingEl.style.display = 'none';
+    }
 
     // Turn indicator
     if (state.myTurn) {

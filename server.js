@@ -145,10 +145,16 @@ io.on('connection', (socket) => {
       drawnCards: result.drawnCards,
       playableCard: result.playableCard,
       drawCount: result.drawCount,
+      wasPenalty: result.wasPenalty || false,
+      penaltyCount: result.penaltyCount || 0,
     });
 
     // Tell everyone else someone drew (and how many)
-    socket.to(roomCode).emit('card-drawn', { playerId, drawCount: result.drawCount });
+    socket.to(roomCode).emit('card-drawn', {
+      playerId,
+      drawCount: result.drawCount,
+      wasPenalty: result.wasPenalty || false,
+    });
 
     // Send updated state to each player
     for (const [sid, player] of room.players) {

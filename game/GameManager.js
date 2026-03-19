@@ -11,11 +11,9 @@ class GameManager {
     this.currentColor = null;
     this.state = 'waiting'; // waiting | playing | finished
     this.winnerId = null;
-    this.pendingWild4 = null; // { playerId, card } for challenge window
-    this.wild4Timer = null;
-    this.turnTimer = null;
-    this.turnTimeLimit = 30000; // 30 seconds
-    this.drawnThisTurn = false; // Track if current player already drew
+    this.drawnThisTurn = false;
+    this.pendingDrawCount = 0; // Stacked draw count (+2/+4 stacking)
+    this.pendingDrawType = null; // 'draw2' or 'wild4' - what type can be stacked
   }
 
   startGame() {
@@ -25,6 +23,8 @@ class GameManager {
     this.state = 'playing';
     this.winnerId = null;
     this.drawnThisTurn = false;
+    this.pendingDrawCount = 0;
+    this.pendingDrawType = null;
 
     // Deal 7 cards to each player
     for (const player of this.players) {
@@ -45,7 +45,6 @@ class GameManager {
     this.discardPile.push(firstCard);
 
     if (firstCard.color === 'wild') {
-      // Random color for wild start
       this.currentColor = CARD_COLORS[Math.floor(Math.random() * 4)];
     } else {
       this.currentColor = firstCard.color;
@@ -75,12 +74,10 @@ class GameManager {
         }
         break;
       case 'draw2': {
-        const target = this.getCurrentPlayer();
-        for (let i = 0; i < 2; i++) {
-          target.hand.push(this.drawFromDeck());
-        }
-        effects.push({ type: 'draw2', playerId: target.id });
-        this.advanceTurn();
+        // First card is +2: set pending draw for first player
+        this.pendingDrawCount = 2;
+        this.pendingDrawType = 'draw2';
+        effects.push({ type: 'draw2-pending', count: 2 });
         break;
       }
     }
@@ -116,7 +113,17 @@ class GameManager {
   advanceTurn() {
     this.currentPlayerIndex = this.getNextPlayerIndex();
     this.drawnThisTurn = false;
-    // Reset UNO state for previous players
+  }
+
+  // Check if a card can be played considering draw stacking
+  canPlayCardNow(card, topCard) {
+    if (this.pendingDrawCount > 0) {
+      // When there's a pending draw, only +2 can be stacked on +2, +4 on +4
+      if (this.pendingDrawType === 'draw2' && card.value === 'draw2') return true;
+      if (this.pendingDrawType === 'wild4' && card.value === 'wild4') return true;
+      return false; // Can't play anything else - must draw
+    }
+    return canPlayOn(card, topCard, this.currentColor);
   }
 
   playCard(playerId, cardId, chosenColor = null) {
@@ -137,7 +144,10 @@ class GameManager {
     const card = currentPlayer.hand[cardIndex];
     const topCard = this.discardPile[this.discardPile.length - 1];
 
-    if (!canPlayOn(card, topCard, this.currentColor)) {
+    if (!this.canPlayCardNow(card, topCard)) {
+      if (this.pendingDrawCount > 0) {
+        return { error: `+${this.pendingDrawType === 'draw2' ? '2' : '4'}を出すか、${this.pendingDrawCount}枚引いてください` };
+      }
       return { error: 'そのカードは出せません' };
     }
 
@@ -162,6 +172,19 @@ class GameManager {
 
     // Check win
     if (currentPlayer.hand.length === 0) {
+      // If winning with +2 or +4, the pending draws still apply to next player
+      if (card.value === 'draw2' || card.value === 'wild4') {
+        const drawAmount = card.value === 'draw2' ? 2 : 4;
+        const totalDraw = this.pendingDrawCount + drawAmount;
+        const target = this.getNextPlayer();
+        for (let i = 0; i < totalDraw; i++) {
+          target.hand.push(this.drawFromDeck());
+        }
+        effects.push({ type: card.value, playerId: target.id, count: totalDraw, stacked: true });
+        this.pendingDrawCount = 0;
+        this.pendingDrawType = null;
+      }
+
       this.state = 'finished';
       this.winnerId = currentPlayer.id;
       return {
@@ -193,22 +216,20 @@ class GameManager {
         break;
 
       case 'draw2': {
-        const target = this.getNextPlayer();
-        for (let i = 0; i < 2; i++) {
-          target.hand.push(this.drawFromDeck());
-        }
-        effects.push({ type: 'draw2', playerId: target.id });
-        this.advanceTurn(); // skip drawing player
+        // Stack the +2
+        this.pendingDrawCount += 2;
+        this.pendingDrawType = 'draw2';
+        effects.push({ type: 'draw2-stacked', count: this.pendingDrawCount });
+        // Don't skip - next player gets a chance to stack
         break;
       }
 
       case 'wild4': {
-        const target = this.getNextPlayer();
-        for (let i = 0; i < 4; i++) {
-          target.hand.push(this.drawFromDeck());
-        }
-        effects.push({ type: 'wild4', playerId: target.id });
-        this.advanceTurn(); // skip drawing player
+        // Stack the +4
+        this.pendingDrawCount += 4;
+        this.pendingDrawType = 'wild4';
+        effects.push({ type: 'wild4-stacked', count: this.pendingDrawCount });
+        // Don't skip - next player gets a chance to stack
         break;
       }
     }
@@ -217,7 +238,6 @@ class GameManager {
     this.advanceTurn();
 
     // Only reset calledUno if player has more than 1 card
-    // (keep it if they have 1 card so challenge can check it)
     if (currentPlayer.hand.length !== 1) {
       currentPlayer.calledUno = false;
     }
@@ -243,12 +263,36 @@ class GameManager {
       return { error: 'このターンは既にカードを引いています' };
     }
 
-    // Keep drawing until a playable card is found
+    // If there's a pending draw (from stacked +2/+4), draw that many
+    if (this.pendingDrawCount > 0) {
+      const drawnCards = [];
+      for (let i = 0; i < this.pendingDrawCount; i++) {
+        if (this.deck.length === 0 && this.discardPile.length <= 1) break;
+        const card = this.drawFromDeck();
+        currentPlayer.hand.push(card);
+        drawnCards.push(card);
+      }
+      const drawCount = this.pendingDrawCount;
+      this.pendingDrawCount = 0;
+      this.pendingDrawType = null;
+      this.drawnThisTurn = true;
+      this.advanceTurn(); // Skip turn after drawing penalty
+
+      return {
+        drawnCards,
+        playableCard: null,
+        drawCount: drawnCards.length,
+        autoPassed: true,
+        wasPenalty: true,
+        penaltyCount: drawCount,
+      };
+    }
+
+    // Normal draw - keep drawing until a playable card is found
     const topCard = this.discardPile[this.discardPile.length - 1];
     const drawnCards = [];
     let playableCard = null;
 
-    // Safety limit to prevent infinite loop (max 50 cards)
     const maxDraw = Math.min(50, this.deck.length + this.discardPile.length - 1);
     for (let i = 0; i < maxDraw; i++) {
       if (this.deck.length === 0 && this.discardPile.length <= 1) break;
@@ -311,7 +355,6 @@ class GameManager {
     if (!target) return { error: 'プレイヤーが見つかりません' };
 
     if (target.hand.length === 1 && !target.calledUno) {
-      // Penalty: draw 2 cards
       const drawn = [];
       for (let i = 0; i < 2; i++) {
         const c = this.drawFromDeck();
@@ -361,6 +404,13 @@ class GameManager {
     const player = this.players.find(p => p.id === playerId);
     const topCard = this.discardPile[this.discardPile.length - 1];
     const currentPlayer = this.getCurrentPlayer();
+    const isMyTurn = currentPlayer.id === playerId;
+
+    // Check if this player can stack a draw card
+    let canStackDraw = false;
+    if (isMyTurn && this.pendingDrawCount > 0 && player) {
+      canStackDraw = player.hand.some(c => c.value === this.pendingDrawType);
+    }
 
     return {
       myHand: player ? player.hand : [],
@@ -372,11 +422,14 @@ class GameManager {
       topCard,
       currentColor: this.currentColor,
       direction: this.direction,
-      myTurn: currentPlayer.id === playerId,
+      myTurn: isMyTurn,
       state: this.state,
-      canDraw: currentPlayer.id === playerId && !this.drawnThisTurn,
-      canPass: false, // No longer needed - draw until playable
+      canDraw: isMyTurn && !this.drawnThisTurn,
+      canPass: false,
       drawPileCount: this.deck.length,
+      pendingDrawCount: this.pendingDrawCount,
+      pendingDrawType: this.pendingDrawType,
+      canStackDraw,
     };
   }
 }
