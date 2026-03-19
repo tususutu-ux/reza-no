@@ -194,26 +194,20 @@ class GameManager {
 
       case 'draw2': {
         const target = this.getNextPlayer();
-        const drawn = [];
         for (let i = 0; i < 2; i++) {
-          const c = this.drawFromDeck();
-          target.hand.push(c);
-          drawn.push(c);
+          target.hand.push(this.drawFromDeck());
         }
-        effects.push({ type: 'draw2', playerId: target.id, cards: drawn });
+        effects.push({ type: 'draw2', playerId: target.id });
         this.advanceTurn(); // skip drawing player
         break;
       }
 
       case 'wild4': {
         const target = this.getNextPlayer();
-        const drawn = [];
         for (let i = 0; i < 4; i++) {
-          const c = this.drawFromDeck();
-          target.hand.push(c);
-          drawn.push(c);
+          target.hand.push(this.drawFromDeck());
         }
-        effects.push({ type: 'wild4', playerId: target.id, cards: drawn });
+        effects.push({ type: 'wild4', playerId: target.id });
         this.advanceTurn(); // skip drawing player
         break;
       }

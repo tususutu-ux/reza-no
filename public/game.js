@@ -196,6 +196,10 @@
     gameState = state;
     myHand = state.myHand;
     renderGameState(state);
+    // Always show turn indicator when it's my turn
+    if (state.myTurn) {
+      showTurnIndicator('あなたのターンです！');
+    }
   }
 
   function onCardPlayed({ playerId, card, effects, currentColor, direction }) {
