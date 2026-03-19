@@ -559,6 +559,88 @@ input[type="text"]::placeholder { color: #d1d5db; }
 .notification.draw { border-left: 4px solid var(--yellow); }
 .notification.uno { border-left: 4px solid #f97316; }
 
+/* Chat */
+.chat-area {
+  position: fixed;
+  right: 12px;
+  bottom: 140px;
+  width: 200px;
+  height: 300px;
+  pointer-events: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  z-index: 80;
+}
+
+.chat-bubble {
+  padding: 6px 12px;
+  margin-bottom: 4px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  font-size: 13px;
+  max-width: 100%;
+  word-break: break-word;
+  animation: chatFloat 8s ease-out forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.chat-bubble .chat-name {
+  font-weight: 700;
+  color: #f9a8d4;
+  margin-right: 4px;
+  font-size: 11px;
+}
+
+.chat-input-bar {
+  position: fixed;
+  right: 12px;
+  bottom: 100px;
+  display: flex;
+  gap: 4px;
+  z-index: 85;
+}
+
+.chat-input-bar input {
+  width: 150px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.4);
+  color: white;
+  font-size: 13px;
+  outline: none;
+  box-shadow: none;
+  text-align: left;
+}
+.chat-input-bar input::placeholder { color: rgba(255,255,255,0.5); }
+.chat-input-bar input:focus { border-color: #f9a8d4; }
+
+.btn-chat-send {
+  padding: 8px 12px !important;
+  font-size: 12px !important;
+  border-radius: 20px !important;
+  background: linear-gradient(135deg, #ec4899, #f472b6) !important;
+  min-width: 0 !important;
+}
+
+@keyframes chatFloat {
+  0% { opacity: 0; transform: translateY(20px); }
+  8% { opacity: 1; transform: translateY(0); }
+  75% { opacity: 1; transform: translateY(-60px); }
+  100% { opacity: 0; transform: translateY(-100px); }
+}
+
+@media (max-width: 768px) {
+  .chat-area { width: 160px; right: 8px; bottom: 120px; height: 200px; }
+  .chat-input-bar { right: 8px; bottom: 84px; }
+  .chat-input-bar input { width: 120px; padding: 6px 10px; font-size: 12px; }
+  .chat-bubble { font-size: 11px; padding: 4px 8px; }
+}
+
 /* Error toast */
 .error-toast {
   position: fixed;

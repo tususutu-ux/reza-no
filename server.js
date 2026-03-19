@@ -209,6 +209,18 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('chat-message', ({ roomCode, message }) => {
+    if (!message || message.trim().length === 0) return;
+    const room = roomManager.getRoom(roomCode);
+    if (!room) return;
+    const player = room.getPlayerBySocketId(socket.id);
+    if (!player) return;
+    io.to(roomCode).emit('chat-message', {
+      playerName: player.name,
+      message: message.trim().slice(0, 50),
+    });
+  });
+
   socket.on('restart-game', ({ roomCode }) => {
     const room = roomManager.getRoom(roomCode);
     if (!room) return socket.emit('error', { message: '部屋が見つかりません' });

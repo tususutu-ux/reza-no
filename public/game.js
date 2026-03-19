@@ -105,6 +105,7 @@
     socket.on('game-over', onGameOver);
     socket.on('player-disconnected', onPlayerDisconnected);
     socket.on('player-reconnected', onPlayerReconnected);
+    socket.on('chat-message', onChatMessage);
 
     socket.on('error', onError);
 
@@ -300,6 +301,21 @@
 
   function onPlayerReconnected({ playerName }) {
     showNotification(`${playerName} 再接続`, 'draw');
+  }
+
+  function onChatMessage({ playerName, message }) {
+    const chatArea = $('chat-area');
+    if (!chatArea) return;
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble';
+    bubble.innerHTML = `<span class="chat-name">${escapeHtml(playerName)}</span>${escapeHtml(message)}`;
+    chatArea.appendChild(bubble);
+    // Remove after animation ends
+    setTimeout(() => bubble.remove(), 8500);
+    // Keep max 10 bubbles
+    while (chatArea.children.length > 10) {
+      chatArea.removeChild(chatArea.firstChild);
+    }
   }
 
   function onError({ message }) {
@@ -617,6 +633,19 @@
 
     roomCodeInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') btnJoin.click();
+    });
+
+    // Chat
+    const chatInput = $('chat-input');
+    const btnChatSend = $('btn-chat-send');
+    function sendChat() {
+      if (!roomCode || !chatInput.value.trim()) return;
+      socket.emit('chat-message', { roomCode, message: chatInput.value.trim() });
+      chatInput.value = '';
+    }
+    btnChatSend.addEventListener('click', sendChat);
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendChat();
     });
   }
 
