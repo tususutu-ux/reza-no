@@ -1000,6 +1000,50 @@
       chatToggle.classList.toggle('active');
     });
 
+    // Drag chat container
+    const chatContainer = $('chat-container');
+    const dragHandle = $('chat-drag-handle');
+    if (chatContainer && dragHandle) {
+      let isDragging = false;
+      let dragStartX, dragStartY, startLeft, startBottom;
+
+      function onDragStart(e) {
+        isDragging = true;
+        const touch = e.touches ? e.touches[0] : e;
+        dragStartX = touch.clientX;
+        dragStartY = touch.clientY;
+        const rect = chatContainer.getBoundingClientRect();
+        startLeft = rect.left;
+        startBottom = window.innerHeight - rect.bottom;
+        e.preventDefault();
+      }
+
+      function onDragMove(e) {
+        if (!isDragging) return;
+        const touch = e.touches ? e.touches[0] : e;
+        const dx = touch.clientX - dragStartX;
+        const dy = touch.clientY - dragStartY;
+        const newLeft = Math.max(0, Math.min(window.innerWidth - 60, startLeft + dx));
+        const newBottom = Math.max(0, Math.min(window.innerHeight - 60, startBottom - dy));
+        chatContainer.style.left = newLeft + 'px';
+        chatContainer.style.bottom = newBottom + 'px';
+        chatContainer.style.right = 'auto';
+        chatContainer.style.top = 'auto';
+        e.preventDefault();
+      }
+
+      function onDragEnd() {
+        isDragging = false;
+      }
+
+      dragHandle.addEventListener('mousedown', onDragStart);
+      dragHandle.addEventListener('touchstart', onDragStart, { passive: false });
+      document.addEventListener('mousemove', onDragMove);
+      document.addEventListener('touchmove', onDragMove, { passive: false });
+      document.addEventListener('mouseup', onDragEnd);
+      document.addEventListener('touchend', onDragEnd);
+    }
+
     // Stats modal
     const btnStats = $('btn-stats');
     const statsModal = $('stats-modal');

@@ -176,22 +176,25 @@
 
     <!-- Chat -->
     <div id="chat-area" class="chat-area"></div>
-    <button id="btn-chat-toggle" class="btn-chat-toggle">💬</button>
-    <div id="chat-panel" class="chat-panel hidden">
-      <div class="stamp-bar" id="stamp-bar">
-        <button class="stamp-btn" data-stamp="👍">👍</button>
-        <button class="stamp-btn" data-stamp="😂">😂</button>
-        <button class="stamp-btn" data-stamp="🔥">🔥</button>
-        <button class="stamp-btn" data-stamp="😭">😭</button>
-        <button class="stamp-btn" data-stamp="👏">👏</button>
-        <button class="stamp-btn" data-stamp="💪">💪</button>
-        <button class="stamp-btn" data-stamp="😱">😱</button>
-        <button class="stamp-btn" data-stamp="🎉">🎉</button>
+    <div id="chat-container" class="chat-container">
+      <div id="chat-panel" class="chat-panel hidden">
+        <div id="chat-drag-handle" class="chat-drag-handle">⋯ ドラッグで移動 ⋯</div>
+        <div class="stamp-bar" id="stamp-bar">
+          <button class="stamp-btn" data-stamp="👍">👍</button>
+          <button class="stamp-btn" data-stamp="😂">😂</button>
+          <button class="stamp-btn" data-stamp="🔥">🔥</button>
+          <button class="stamp-btn" data-stamp="😭">😭</button>
+          <button class="stamp-btn" data-stamp="👏">👏</button>
+          <button class="stamp-btn" data-stamp="💪">💪</button>
+          <button class="stamp-btn" data-stamp="😱">😱</button>
+          <button class="stamp-btn" data-stamp="🎉">🎉</button>
+        </div>
+        <div class="chat-input-row">
+          <input type="text" id="chat-input" placeholder="チャット..." maxlength="50" autocomplete="off">
+          <button id="btn-chat-send" class="btn btn-chat-send">送信</button>
+        </div>
       </div>
-      <div class="chat-input-row">
-        <input type="text" id="chat-input" placeholder="チャット..." maxlength="50" autocomplete="off">
-        <button id="btn-chat-send" class="btn btn-chat-send">送信</button>
-      </div>
+      <button id="btn-chat-toggle" class="btn-chat-toggle">💬</button>
     </div>
   </div>
 
