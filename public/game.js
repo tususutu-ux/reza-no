@@ -365,20 +365,77 @@
     if (playerId !== myId) {
       const p = gameState?.players.find(pl => pl.id === playerId);
       if (drawCount > 1) {
-        showNotification(`${p?.name || '?'} ${drawCount}枚引いた！`, 'draw');
+        // Show counting animation for other player's draw
+        showDrawCounting(`${p?.name || '?'} カード探し中...`, drawCount, false);
       }
     }
   }
 
   function onYourDraw({ drawnCards, playableCard, drawCount, wasPenalty, penaltyCount }) {
     if (wasPenalty) {
-      showNotification(`ペナルティ！${penaltyCount}枚引きました`, 'skip');
+      showDrawCounting('ペナルティ！', penaltyCount, true);
     } else if (drawCount > 1) {
-      showNotification(`${drawCount}枚引きました`, 'draw');
-    }
-    if (playableCard && !wasPenalty) {
+      // Show 1-by-1 counting animation
+      showDrawCounting('出せるカードを探し中...', drawCount, false, playableCard);
+    } else if (drawCount === 1 && playableCard) {
       showNotification('出せるカードが来た！', 'draw');
     }
+  }
+
+  function showDrawCounting(title, totalCards, isPenalty, foundPlayable) {
+    // Create or reuse draw counter overlay
+    let overlay = $('draw-counter-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'draw-counter-overlay';
+      overlay.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:110;pointer-events:none;text-align:center;';
+      document.getElementById('game-screen').appendChild(overlay);
+    }
+
+    overlay.innerHTML = `
+      <div style="background:rgba(0,0,0,0.85);color:white;padding:16px 32px;border-radius:16px;font-weight:800;min-width:200px;">
+        <div style="font-size:14px;margin-bottom:8px;opacity:0.8;">${title}</div>
+        <div id="draw-counter-num" style="font-size:48px;color:#f472b6;">0</div>
+        <div style="font-size:12px;margin-top:4px;opacity:0.6;">枚引いた</div>
+      </div>
+    `;
+    overlay.style.display = 'block';
+
+    const counterEl = document.getElementById('draw-counter-num');
+    let count = 0;
+    const interval = Math.min(500, Math.max(200, 2000 / totalCards)); // Adaptive speed
+
+    const timer = setInterval(() => {
+      count++;
+      if (counterEl) {
+        counterEl.textContent = count;
+        counterEl.style.transform = 'scale(1.3)';
+        setTimeout(() => { if (counterEl) counterEl.style.transform = 'scale(1)'; }, 100);
+      }
+
+      if (count >= totalCards) {
+        clearInterval(timer);
+        // Show final message
+        setTimeout(() => {
+          if (counterEl) {
+            if (isPenalty) {
+              counterEl.style.color = '#ef4444';
+            } else if (foundPlayable) {
+              counterEl.style.color = '#22c55e';
+              const parent = counterEl.parentElement;
+              if (parent) {
+                const msg = document.createElement('div');
+                msg.style.cssText = 'font-size:16px;color:#22c55e;margin-top:8px;font-weight:800;';
+                msg.textContent = '出せるカード来た！';
+                parent.appendChild(msg);
+              }
+            }
+          }
+          // Hide after a moment
+          setTimeout(() => { overlay.style.display = 'none'; }, 1200);
+        }, 300);
+      }
+    }, interval);
   }
 
   function onUnoCalled({ playerId, playerName }) {
