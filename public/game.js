@@ -967,8 +967,12 @@
     });
 
     // Enter key on inputs
+    // Don't auto-create room on Enter in name field - just move focus to room code
     playerNameInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') btnCreate.click();
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        roomCodeInput.focus();
+      }
     });
 
     roomCodeInput.addEventListener('keydown', (e) => {
