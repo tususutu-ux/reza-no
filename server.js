@@ -194,7 +194,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('jump-in', ({ roomCode, cardId, chosenColor }) => {
+  socket.on('play-multiple', ({ roomCode, cardIds, chosenColor }) => {
     const room = roomManager.getRoom(roomCode);
     if (!room || !room.game) {
       return socket.emit('error', { message: 'ゲームが見つかりません' });
@@ -203,21 +203,18 @@ io.on('connection', (socket) => {
     const playerId = room.getPlayerIdBySocket(socket.id);
     if (!playerId) return socket.emit('error', { message: 'プレイヤーが見つかりません' });
 
-    const result = room.game.jumpIn(playerId, cardId, chosenColor);
+    const result = room.game.playMultipleCards(playerId, cardIds, chosenColor);
     if (result.error) return socket.emit('error', { message: result.error });
 
-    // Broadcast jump-in
     io.to(roomCode).emit('card-played', {
       playerId,
       card: result.card,
       effects: result.effects,
       currentColor: room.game.currentColor,
       direction: room.game.direction,
-      jumpIn: true,
-      jumperName: result.jumperName,
+      multiPlay: result.multiPlay,
     });
 
-    // Send updated state to each player
     for (const [sid, player] of room.players) {
       io.to(sid).emit('game-state', room.game.getStateForPlayer(player.id));
     }

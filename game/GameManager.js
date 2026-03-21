@@ -351,118 +351,134 @@ class GameManager {
     return { success: true };
   }
 
-  jumpIn(playerId, cardId, chosenColor = null) {
+  // Play multiple cards of the same value at once
+  playMultipleCards(playerId, cardIds, chosenColor = null) {
     if (this.state !== 'playing') {
       return { error: 'ゲームが進行中ではありません' };
     }
-
-    // Can't jump in on your own turn
     const currentPlayer = this.getCurrentPlayer();
-    if (currentPlayer.id === playerId) {
-      return { error: '自分のターンでは通常プレイしてください' };
+    if (currentPlayer.id !== playerId) {
+      return { error: 'あなたのターンではありません' };
+    }
+    if (!cardIds || cardIds.length < 2) {
+      return { error: 'カードを2枚以上選択してください' };
     }
 
-    // Can't jump in during pending draw
-    if (this.pendingDrawCount > 0) {
-      return { error: 'スタック中は割り込みできません' };
+    // Verify all cards exist in hand
+    const cards = [];
+    for (const id of cardIds) {
+      const idx = currentPlayer.hand.findIndex(c => c.id === id);
+      if (idx === -1) return { error: 'カードが見つかりません' };
+      cards.push(currentPlayer.hand[idx]);
     }
 
-    const player = this.players.find(p => p.id === playerId);
-    if (!player) return { error: 'プレイヤーが見つかりません' };
+    // All cards must have the same value
+    const value = cards[0].value;
+    if (!cards.every(c => c.value === value)) {
+      return { error: '同じ種類のカードのみ重ね出しできます' };
+    }
 
-    const cardIndex = player.hand.findIndex(c => c.id === cardId);
-    if (cardIndex === -1) return { error: 'そのカードは持っていません' };
-
-    const card = player.hand[cardIndex];
+    // First card must be playable on the current top card
     const topCard = this.discardPile[this.discardPile.length - 1];
-
-    // Jump-in rule: must be the exact same value as top card
-    if (card.value !== topCard.value) {
-      return { error: '同じ種類のカードでないと割り込みできません' };
+    if (!this.canPlayCardNow(cards[0], topCard)) {
+      if (this.pendingDrawCount > 0) {
+        return { error: `+${this.pendingDrawType === 'draw2' ? '2' : '4'}を出すか引いてください` };
+      }
+      return { error: 'そのカードは出せません' };
     }
 
     // For wild cards, need a chosen color
-    if (card.color === 'wild' && chosenColor) {
+    if (cards[0].color === 'wild' && chosenColor) {
       if (!CARD_COLORS.includes(chosenColor)) {
         return { error: '無効な色です' };
       }
     }
 
-    // Remove card from hand
-    player.hand.splice(cardIndex, 1);
-    this.discardPile.push(card);
-
-    // Update color
-    if (card.color === 'wild') {
-      this.currentColor = chosenColor || 'red';
-    } else {
-      this.currentColor = card.color;
+    // Remove all cards from hand and add to discard pile
+    for (const card of cards) {
+      const idx = currentPlayer.hand.findIndex(c => c.id === card.id);
+      if (idx !== -1) currentPlayer.hand.splice(idx, 1);
+      this.discardPile.push(card);
     }
 
-    const effects = [{ type: 'jump-in', playerId: player.id, playerName: player.name }];
+    // Last card determines color
+    const lastCard = cards[cards.length - 1];
+    if (lastCard.color === 'wild') {
+      this.currentColor = chosenColor || 'red';
+    } else {
+      this.currentColor = lastCard.color;
+    }
+
+    const effects = [{ type: 'multi-play', count: cards.length, value }];
 
     // Check win
-    if (player.hand.length === 0) {
+    if (currentPlayer.hand.length === 0) {
+      // Apply cumulative effects before winning
+      this.applyMultiCardEffects(cards, effects);
       this.state = 'finished';
-      this.winnerId = player.id;
+      this.winnerId = currentPlayer.id;
       return {
-        card,
+        card: lastCard,
+        cards,
         effects,
         gameOver: true,
         scores: this.calculateScores(),
-        jumpIn: true,
-        jumperName: player.name,
+        multiPlay: cards.length,
       };
     }
 
     // Check UNO
-    if (player.hand.length === 1 && !player.calledUno) {
-      effects.push({ type: 'uno-not-called', playerId: player.id });
+    if (currentPlayer.hand.length === 1 && !currentPlayer.calledUno) {
+      effects.push({ type: 'uno-not-called', playerId: currentPlayer.id });
     }
 
-    // Apply card effects
-    // Set current player to the jumper's position first
-    this.currentPlayerIndex = this.players.indexOf(player);
-    this.drawnThisTurn = false;
+    // Apply effects for each card
+    this.applyMultiCardEffects(cards, effects);
 
-    switch (card.value) {
-      case 'skip':
-        effects.push({ type: 'skip', playerId: this.getNextPlayer().id });
-        this.advanceTurn(); // skip next
-        break;
-      case 'reverse':
-        this.direction *= -1;
-        effects.push({ type: 'reverse', direction: this.direction });
-        if (this.players.length === 2) {
-          this.advanceTurn();
-        }
-        break;
-      case 'draw2':
-        this.pendingDrawCount += 2;
-        this.pendingDrawType = 'draw2';
-        effects.push({ type: 'draw2-stacked', count: this.pendingDrawCount });
-        break;
-      case 'wild4':
-        this.pendingDrawCount += 4;
-        this.pendingDrawType = 'wild4';
-        effects.push({ type: 'wild4-stacked', count: this.pendingDrawCount });
-        break;
-    }
-
-    // Advance to next player from jumper's position
+    // Advance turn
     this.advanceTurn();
 
-    if (player.hand.length !== 1) {
-      player.calledUno = false;
+    if (currentPlayer.hand.length !== 1) {
+      currentPlayer.calledUno = false;
     }
 
     return {
-      card,
+      card: lastCard,
+      cards,
       effects,
       gameOver: false,
-      jumpIn: true,
-      jumperName: player.name,
+      multiPlay: cards.length,
     };
+  }
+
+  applyMultiCardEffects(cards, effects) {
+    for (const card of cards) {
+      switch (card.value) {
+        case 'skip':
+          effects.push({ type: 'skip', playerId: this.getNextPlayer().id });
+          this.advanceTurn();
+          break;
+        case 'reverse':
+          this.direction *= -1;
+          effects.push({ type: 'reverse', direction: this.direction });
+          if (this.players.length === 2) {
+            this.advanceTurn();
+          }
+          break;
+        case 'draw2':
+          this.pendingDrawCount += 2;
+          this.pendingDrawType = 'draw2';
+          break;
+        case 'wild4':
+          this.pendingDrawCount += 4;
+          this.pendingDrawType = 'wild4';
+          break;
+      }
+    }
+    // Show total stack if draw cards
+    if (this.pendingDrawCount > 0 && (cards[0].value === 'draw2' || cards[0].value === 'wild4')) {
+      effects.push({ type: cards[0].value === 'draw2' ? 'draw2-stacked' : 'wild4-stacked', count: this.pendingDrawCount });
+    }
   }
 
   throwBall(playerId, targetPlayerId) {

@@ -9,6 +9,7 @@
   let isHost = false;
   let gameState = null;
   let pendingWildCardId = null;
+  let selectedCards = []; // For multi-card play
   let totalRounds = 1;
   let currentRound = 0;
   let gameMode = 'normal';
@@ -299,6 +300,8 @@
   function onGameState(state) {
     gameState = state;
     myHand = state.myHand;
+    // Clear multi-select when state changes (new turn)
+    if (!state.myTurn) selectedCards = [];
     renderGameState(state);
     if (state.myTurn) {
       if (state.pendingDrawCount > 0) {
@@ -320,9 +323,10 @@
     }
   }
 
-  function onCardPlayed({ playerId, card, effects, currentColor, direction, jumpIn, jumperName }) {
-    if (jumpIn) {
-      showNotification(`⚡ ${jumperName} 割り込み！`, 'uno');
+  function onCardPlayed({ playerId, card, effects, currentColor, direction, multiPlay }) {
+    if (multiPlay && multiPlay > 1) {
+      const p = gameState?.players.find(pl => pl.id === playerId);
+      showNotification(`${p?.name || '?'} ${multiPlay}枚重ね出し！`, 'draw');
     }
     // Show effects
     effects.forEach(effect => {
@@ -353,8 +357,8 @@
           showNotification(`${p?.name || '?'} +4！`, 'draw');
           break;
         }
-        case 'jump-in': {
-          // Already shown above
+        case 'multi-play': {
+          showNotification(`${effect.count}枚重ね出し！`, 'draw');
           break;
         }
         case 'uno-not-called': {
@@ -671,58 +675,96 @@
     const topCard = state.topCard;
     const currentColor = state.currentColor;
 
+    // Count how many of each value we have (for multi-play indicator)
+    const valueCounts = {};
+    cards.forEach(c => {
+      valueCounts[c.value] = (valueCounts[c.value] || 0) + 1;
+    });
+
+    // Check which values have at least one playable card
+    const playableValues = new Set();
+    cards.forEach(card => {
+      let p;
+      if (state.pendingDrawCount > 0) {
+        p = state.myTurn && card.value === state.pendingDrawType;
+      } else {
+        p = state.myTurn && canPlayOn(card, topCard, currentColor);
+      }
+      if (p) playableValues.add(card.value);
+    });
+
     cards.forEach(card => {
       const el = document.createElement('div');
       let playable;
-      let jumpInAble = false;
 
       if (state.pendingDrawCount > 0) {
         playable = state.myTurn && card.value === state.pendingDrawType;
       } else {
-        playable = state.myTurn && canPlayOn(card, topCard, currentColor);
+        // If any card of this value is playable, all same-value cards are playable for multi-play
+        playable = state.myTurn && (canPlayOn(card, topCard, currentColor) || (playableValues.has(card.value) && valueCounts[card.value] >= 2));
       }
 
-      // Jump-in: same value as top card, not my turn, no pending draws
-      if (!state.myTurn && state.pendingDrawCount === 0 && card.value === topCard.value) {
-        jumpInAble = true;
-      }
+      const isSelected = selectedCards.includes(card.id);
+      const canMulti = playable && valueCounts[card.value] >= 2;
 
       el.className = 'card ' + (card.color === 'wild' ? 'wild' : card.color) +
-        (playable ? ' playable' : jumpInAble ? ' jump-in-able' : ' not-playable');
+        (playable ? ' playable' : ' not-playable') +
+        (isSelected ? ' selected' : '') +
+        (canMulti ? ' multi-able' : '');
+      el.dataset.cardId = card.id;
       el.innerHTML = `
         <span class="card-corner">${VALUE_DISPLAY[card.value] || card.value}</span>
         <span class="card-value">${VALUE_DISPLAY[card.value] || card.value}</span>
         ${VALUE_LABEL[card.value] ? `<span class="card-label">${VALUE_LABEL[card.value]}</span>` : ''}
-        ${jumpInAble ? '<span class="jump-in-badge">⚡割込</span>' : ''}
+        ${canMulti && !isSelected ? '<span class="multi-badge">×' + valueCounts[card.value] + '</span>' : ''}
+        ${isSelected ? '<span class="selected-badge">✓</span>' : ''}
       `;
 
       if (playable) {
         el.addEventListener('click', () => onCardClick(card));
-      } else if (jumpInAble) {
-        el.addEventListener('click', () => onJumpIn(card));
       }
 
       myHandEl.appendChild(el);
     });
+
+    // Show multi-play button if cards are selected
+    updateMultiPlayButton();
   }
 
-  function onJumpIn(card) {
-    if (card.color === 'wild') {
-      pendingWildCardId = card.id;
-      // Use jump-in for wild cards
-      const origOnColorChosen = onColorChosen;
+  function updateMultiPlayButton() {
+    let btn = $('btn-multi-play');
+    if (selectedCards.length >= 2) {
+      if (!btn) {
+        btn = document.createElement('button');
+        btn.id = 'btn-multi-play';
+        btn.className = 'btn btn-multi-play';
+        btn.addEventListener('click', onMultiPlay);
+        document.querySelector('.action-buttons').appendChild(btn);
+      }
+      btn.textContent = `${selectedCards.length}枚まとめて出す！`;
+      btn.classList.remove('hidden');
+    } else if (btn) {
+      btn.classList.add('hidden');
+    }
+  }
+
+  function onMultiPlay() {
+    if (selectedCards.length < 2) return;
+
+    // Check if any are wild - need color picker
+    const firstCard = myHand.find(c => c.id === selectedCards[0]);
+    if (firstCard && firstCard.color === 'wild') {
       colorPicker.classList.remove('hidden');
-      // Override color chosen to use jump-in
       document.querySelectorAll('.color-btn').forEach(btn => {
-        const handler = () => {
+        btn.onclick = () => {
           colorPicker.classList.add('hidden');
-          socket.emit('jump-in', { roomCode, cardId: card.id, chosenColor: btn.dataset.color });
-          pendingWildCardId = null;
+          socket.emit('play-multiple', { roomCode, cardIds: [...selectedCards], chosenColor: btn.dataset.color });
+          selectedCards = [];
         };
-        btn.onclick = handler;
       });
     } else {
-      socket.emit('jump-in', { roomCode, cardId: card.id });
+      socket.emit('play-multiple', { roomCode, cardIds: [...selectedCards] });
+      selectedCards = [];
     }
   }
 
@@ -830,12 +872,56 @@
   function onCardClick(card) {
     if (!gameState || !gameState.myTurn) return;
 
-    if (card.color === 'wild') {
-      // Show color picker
-      pendingWildCardId = card.id;
-      colorPicker.classList.remove('hidden');
+    // Check if there are other cards of the same value in hand
+    const sameValueCards = myHand.filter(c => c.value === card.value);
+
+    if (sameValueCards.length >= 2 && card.color !== 'wild') {
+      // Toggle selection for multi-play
+      const idx = selectedCards.indexOf(card.id);
+      if (idx >= 0) {
+        selectedCards.splice(idx, 1);
+      } else {
+        // Only allow selecting same value cards
+        if (selectedCards.length > 0) {
+          const firstSelected = myHand.find(c => c.id === selectedCards[0]);
+          if (firstSelected && firstSelected.value !== card.value) {
+            // Different value - clear selection and start fresh
+            selectedCards = [];
+          }
+        }
+        selectedCards.push(card.id);
+      }
+
+      // If only 1 selected, double-tap to play it immediately
+      if (selectedCards.length === 1) {
+        // Set a timeout - if no second card selected within 500ms, play the single card
+        clearTimeout(window._multiSelectTimer);
+        window._multiSelectTimer = setTimeout(() => {
+          if (selectedCards.length === 1) {
+            const singleCardId = selectedCards[0];
+            selectedCards = [];
+            const singleCard = myHand.find(c => c.id === singleCardId);
+            if (singleCard && singleCard.color === 'wild') {
+              pendingWildCardId = singleCard.id;
+              colorPicker.classList.remove('hidden');
+            } else {
+              socket.emit('play-card', { roomCode, cardId: singleCardId });
+            }
+          }
+        }, 600);
+      }
+
+      // Re-render hand to show selection
+      renderHand(myHand, gameState);
     } else {
-      socket.emit('play-card', { roomCode, cardId: card.id });
+      // Single card or wild - play immediately
+      selectedCards = [];
+      if (card.color === 'wild') {
+        pendingWildCardId = card.id;
+        colorPicker.classList.remove('hidden');
+      } else {
+        socket.emit('play-card', { roomCode, cardId: card.id });
+      }
     }
   }
 
