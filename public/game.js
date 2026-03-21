@@ -697,11 +697,17 @@
       const el = document.createElement('div');
       let playable;
 
+      const isAction = ['skip', 'reverse', 'draw2', 'wild', 'wild4'].includes(card.value);
+
       if (state.pendingDrawCount > 0) {
         playable = state.myTurn && card.value === state.pendingDrawType;
       } else {
-        // If any card of this value is playable, all same-value cards are playable for multi-play
         playable = state.myTurn && (canPlayOn(card, topCard, currentColor) || (playableValues.has(card.value) && valueCounts[card.value] >= 2));
+      }
+
+      // Can't finish with action cards
+      if (playable && cards.length === 1 && isAction) {
+        playable = false;
       }
 
       const isSelected = selectedCards.includes(card.id);

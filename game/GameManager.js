@@ -128,6 +128,11 @@ class GameManager {
     }
   }
 
+  // Check if a card is an action card (not a number)
+  isActionCard(card) {
+    return ['skip', 'reverse', 'draw2', 'wild', 'wild4'].includes(card.value);
+  }
+
   // Check if a card can be played considering draw stacking
   canPlayCardNow(card, topCard) {
     if (this.pendingDrawCount > 0) {
@@ -162,6 +167,11 @@ class GameManager {
         return { error: `+${this.pendingDrawType === 'draw2' ? '2' : '4'}を出すか、${this.pendingDrawCount}枚引いてください` };
       }
       return { error: 'そのカードは出せません' };
+    }
+
+    // Can't finish with action/wild cards - must finish with a number card
+    if (currentPlayer.hand.length === 1 && this.isActionCard(card)) {
+      return { error: '最後の1枚は数字カードでしか上がれません' };
     }
 
     if (card.color === 'wild' && chosenColor) {
@@ -392,6 +402,12 @@ class GameManager {
       if (!CARD_COLORS.includes(chosenColor)) {
         return { error: '無効な色です' };
       }
+    }
+
+    // Can't finish with action cards - check if playing these would leave 0 cards
+    const remainingAfter = currentPlayer.hand.length - cards.length;
+    if (remainingAfter === 0 && this.isActionCard(cards[0])) {
+      return { error: '最後の1枚は数字カードでしか上がれません。アクションカードでは上がれません' };
     }
 
     // Remove all cards from hand and add to discard pile
