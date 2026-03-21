@@ -351,6 +351,120 @@ class GameManager {
     return { success: true };
   }
 
+  jumpIn(playerId, cardId, chosenColor = null) {
+    if (this.state !== 'playing') {
+      return { error: 'ゲームが進行中ではありません' };
+    }
+
+    // Can't jump in on your own turn
+    const currentPlayer = this.getCurrentPlayer();
+    if (currentPlayer.id === playerId) {
+      return { error: '自分のターンでは通常プレイしてください' };
+    }
+
+    // Can't jump in during pending draw
+    if (this.pendingDrawCount > 0) {
+      return { error: 'スタック中は割り込みできません' };
+    }
+
+    const player = this.players.find(p => p.id === playerId);
+    if (!player) return { error: 'プレイヤーが見つかりません' };
+
+    const cardIndex = player.hand.findIndex(c => c.id === cardId);
+    if (cardIndex === -1) return { error: 'そのカードは持っていません' };
+
+    const card = player.hand[cardIndex];
+    const topCard = this.discardPile[this.discardPile.length - 1];
+
+    // Jump-in rule: must be the exact same value as top card
+    if (card.value !== topCard.value) {
+      return { error: '同じ種類のカードでないと割り込みできません' };
+    }
+
+    // For wild cards, need a chosen color
+    if (card.color === 'wild' && chosenColor) {
+      if (!CARD_COLORS.includes(chosenColor)) {
+        return { error: '無効な色です' };
+      }
+    }
+
+    // Remove card from hand
+    player.hand.splice(cardIndex, 1);
+    this.discardPile.push(card);
+
+    // Update color
+    if (card.color === 'wild') {
+      this.currentColor = chosenColor || 'red';
+    } else {
+      this.currentColor = card.color;
+    }
+
+    const effects = [{ type: 'jump-in', playerId: player.id, playerName: player.name }];
+
+    // Check win
+    if (player.hand.length === 0) {
+      this.state = 'finished';
+      this.winnerId = player.id;
+      return {
+        card,
+        effects,
+        gameOver: true,
+        scores: this.calculateScores(),
+        jumpIn: true,
+        jumperName: player.name,
+      };
+    }
+
+    // Check UNO
+    if (player.hand.length === 1 && !player.calledUno) {
+      effects.push({ type: 'uno-not-called', playerId: player.id });
+    }
+
+    // Apply card effects
+    // Set current player to the jumper's position first
+    this.currentPlayerIndex = this.players.indexOf(player);
+    this.drawnThisTurn = false;
+
+    switch (card.value) {
+      case 'skip':
+        effects.push({ type: 'skip', playerId: this.getNextPlayer().id });
+        this.advanceTurn(); // skip next
+        break;
+      case 'reverse':
+        this.direction *= -1;
+        effects.push({ type: 'reverse', direction: this.direction });
+        if (this.players.length === 2) {
+          this.advanceTurn();
+        }
+        break;
+      case 'draw2':
+        this.pendingDrawCount += 2;
+        this.pendingDrawType = 'draw2';
+        effects.push({ type: 'draw2-stacked', count: this.pendingDrawCount });
+        break;
+      case 'wild4':
+        this.pendingDrawCount += 4;
+        this.pendingDrawType = 'wild4';
+        effects.push({ type: 'wild4-stacked', count: this.pendingDrawCount });
+        break;
+    }
+
+    // Advance to next player from jumper's position
+    this.advanceTurn();
+
+    if (player.hand.length !== 1) {
+      player.calledUno = false;
+    }
+
+    return {
+      card,
+      effects,
+      gameOver: false,
+      jumpIn: true,
+      jumperName: player.name,
+    };
+  }
+
   throwBall(playerId, targetPlayerId) {
     if (this.gameMode !== 'ultimate') {
       return { error: 'アルティメットモードではありません' };

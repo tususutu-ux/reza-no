@@ -194,6 +194,52 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('jump-in', ({ roomCode, cardId, chosenColor }) => {
+    const room = roomManager.getRoom(roomCode);
+    if (!room || !room.game) {
+      return socket.emit('error', { message: 'ゲームが見つかりません' });
+    }
+
+    const playerId = room.getPlayerIdBySocket(socket.id);
+    if (!playerId) return socket.emit('error', { message: 'プレイヤーが見つかりません' });
+
+    const result = room.game.jumpIn(playerId, cardId, chosenColor);
+    if (result.error) return socket.emit('error', { message: result.error });
+
+    // Broadcast jump-in
+    io.to(roomCode).emit('card-played', {
+      playerId,
+      card: result.card,
+      effects: result.effects,
+      currentColor: room.game.currentColor,
+      direction: room.game.direction,
+      jumpIn: true,
+      jumperName: result.jumperName,
+    });
+
+    // Send updated state to each player
+    for (const [sid, player] of room.players) {
+      io.to(sid).emit('game-state', room.game.getStateForPlayer(player.id));
+    }
+
+    if (result.gameOver) {
+      room.totalScores.set(result.scores.winnerId,
+        (room.totalScores.get(result.scores.winnerId) || 0) + result.scores.winnerScore);
+      updateLeaderboard(result.scores.winnerId, result.scores.winnerName, true, result.scores.winnerScore);
+      if (result.scores.breakdown) {
+        result.scores.breakdown.forEach(entry => {
+          updateLeaderboard(entry.playerId, entry.name, false, 0);
+        });
+      }
+      io.to(roomCode).emit('game-over', {
+        ...result.scores,
+        totalScores: Object.fromEntries(room.totalScores),
+      });
+    } else {
+      checkCatEvent(room, roomCode);
+    }
+  });
+
   socket.on('draw-card', ({ roomCode }) => {
     const room = roomManager.getRoom(roomCode);
     if (!room || !room.game) {

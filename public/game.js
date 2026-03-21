@@ -320,7 +320,10 @@
     }
   }
 
-  function onCardPlayed({ playerId, card, effects, currentColor, direction }) {
+  function onCardPlayed({ playerId, card, effects, currentColor, direction, jumpIn, jumperName }) {
+    if (jumpIn) {
+      showNotification(`⚡ ${jumperName} 割り込み！`, 'uno');
+    }
     // Show effects
     effects.forEach(effect => {
       switch (effect.type) {
@@ -348,6 +351,10 @@
         case 'wild4': {
           const p = gameState?.players.find(pl => pl.id === effect.playerId);
           showNotification(`${p?.name || '?'} +4！`, 'draw');
+          break;
+        }
+        case 'jump-in': {
+          // Already shown above
           break;
         }
         case 'uno-not-called': {
@@ -667,26 +674,56 @@
     cards.forEach(card => {
       const el = document.createElement('div');
       let playable;
+      let jumpInAble = false;
+
       if (state.pendingDrawCount > 0) {
-        // When there's a pending draw, only matching draw cards can be played
         playable = state.myTurn && card.value === state.pendingDrawType;
       } else {
         playable = state.myTurn && canPlayOn(card, topCard, currentColor);
       }
+
+      // Jump-in: same value as top card, not my turn, no pending draws
+      if (!state.myTurn && state.pendingDrawCount === 0 && card.value === topCard.value) {
+        jumpInAble = true;
+      }
+
       el.className = 'card ' + (card.color === 'wild' ? 'wild' : card.color) +
-        (playable ? ' playable' : ' not-playable');
+        (playable ? ' playable' : jumpInAble ? ' jump-in-able' : ' not-playable');
       el.innerHTML = `
         <span class="card-corner">${VALUE_DISPLAY[card.value] || card.value}</span>
         <span class="card-value">${VALUE_DISPLAY[card.value] || card.value}</span>
         ${VALUE_LABEL[card.value] ? `<span class="card-label">${VALUE_LABEL[card.value]}</span>` : ''}
+        ${jumpInAble ? '<span class="jump-in-badge">⚡割込</span>' : ''}
       `;
 
       if (playable) {
         el.addEventListener('click', () => onCardClick(card));
+      } else if (jumpInAble) {
+        el.addEventListener('click', () => onJumpIn(card));
       }
 
       myHandEl.appendChild(el);
     });
+  }
+
+  function onJumpIn(card) {
+    if (card.color === 'wild') {
+      pendingWildCardId = card.id;
+      // Use jump-in for wild cards
+      const origOnColorChosen = onColorChosen;
+      colorPicker.classList.remove('hidden');
+      // Override color chosen to use jump-in
+      document.querySelectorAll('.color-btn').forEach(btn => {
+        const handler = () => {
+          colorPicker.classList.add('hidden');
+          socket.emit('jump-in', { roomCode, cardId: card.id, chosenColor: btn.dataset.color });
+          pendingWildCardId = null;
+        };
+        btn.onclick = handler;
+      });
+    } else {
+      socket.emit('jump-in', { roomCode, cardId: card.id });
+    }
   }
 
   function canPlayOn(card, topCard, currentColor) {

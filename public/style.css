@@ -532,6 +532,38 @@ input[type="text"]::placeholder { color: #d1d5db; }
   animation: glow 2s infinite;
 }
 
+/* Jump-in cards */
+.my-hand .card.jump-in-able {
+  filter: brightness(0.9);
+  cursor: pointer;
+  border-color: rgba(251, 191, 36, 0.7);
+}
+.my-hand .card.jump-in-able::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 12px;
+  border: 2px solid rgba(251, 191, 36, 0.6);
+  animation: glow 1.5s infinite;
+}
+.my-hand .card.jump-in-able:hover {
+  transform: translateY(-16px);
+  filter: brightness(1);
+}
+
+.jump-in-badge {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: 7px;
+  background: rgba(251, 191, 36, 0.9);
+  color: #333;
+  padding: 1px 3px;
+  border-radius: 4px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
 /* Action buttons */
 .action-buttons {
   display: flex;
