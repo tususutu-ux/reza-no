@@ -546,9 +546,16 @@ class GameManager {
     const player = this.players.find(p => p.id === playerId);
     if (!player) return { error: 'プレイヤーが見つかりません' };
 
-    if (player.hand.length <= 2) {
-      player.calledUno = true;
-      return { success: true, playerId };
+    // Allow UNO call if hand is small enough that multi-play could leave 1 card
+    if (player.hand.length >= 2) {
+      const valueCounts = {};
+      player.hand.forEach(c => { valueCounts[c.value] = (valueCounts[c.value] || 0) + 1; });
+      const canReachOne = player.hand.length <= 2 ||
+        Object.values(valueCounts).some(count => count >= player.hand.length - 1);
+      if (canReachOne) {
+        player.calledUno = true;
+        return { success: true, playerId };
+      }
     }
 
     return { error: 'UNOを宣言できません' };

@@ -829,8 +829,26 @@
   }
 
   function updateActionButtons(state) {
-    // UNO button - show prominently when player has 2 cards
-    const shouldShowUno = state.myTurn && myHand.length === 2;
+    // UNO button - show when playing cards could leave you with 1 card
+    // Standard: 2 cards in hand (play 1 → 1 left)
+    // Multi-play: check if same-value cards could reduce hand to 1
+    let shouldShowUno = false;
+    if (state.myTurn && myHand.length >= 2) {
+      if (myHand.length === 2) {
+        shouldShowUno = true;
+      } else {
+        // Check if multi-play could leave 1 card
+        const valueCounts = {};
+        myHand.forEach(c => { valueCounts[c.value] = (valueCounts[c.value] || 0) + 1; });
+        for (const [val, count] of Object.entries(valueCounts)) {
+          if (count >= myHand.length - 1) {
+            // Playing count cards would leave 1 or fewer
+            shouldShowUno = true;
+            break;
+          }
+        }
+      }
+    }
     btnUno.disabled = !shouldShowUno;
     if (shouldShowUno) {
       btnUno.classList.add('uno-active');
