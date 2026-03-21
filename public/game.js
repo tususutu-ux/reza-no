@@ -187,6 +187,7 @@
     socket.on('chat-message', onChatMessage);
     socket.on('ball-thrown', onBallThrown);
     socket.on('cat-event', onCatEvent);
+    socket.on('uno-spam', onUnoSpam);
 
     socket.on('error', onError);
 
@@ -593,6 +594,14 @@
         }
       });
     }, 600);
+  }
+
+  function onUnoSpam({ playerId, playerName }) {
+    if (playerId === myId) {
+      showNotification('UNO連呼ペナルティ！+1枚！', 'skip');
+    } else {
+      showNotification(`${playerName} UNO連呼ペナルティ！+1枚`, 'skip');
+    }
   }
 
   function onCatEvent() {

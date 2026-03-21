@@ -18,6 +18,7 @@ class GameManager {
     this.ballUsed = new Set(); // Track who used their ball this round
     this.turnCount = 0; // Track turns for cat event
     this.catEventPending = false; // Flag for cat event
+    this.unoCallCount = new Map(); // playerId -> { count, lastTime } for spam prevention
   }
 
   startGame() {
@@ -561,6 +562,23 @@ class GameManager {
   callUno(playerId) {
     const player = this.players.find(p => p.id === playerId);
     if (!player) return { error: 'プレイヤーが見つかりません' };
+
+    // Spam prevention: max 3 calls per 10 seconds
+    const now = Date.now();
+    let spam = this.unoCallCount.get(playerId) || { count: 0, lastTime: 0 };
+    if (now - spam.lastTime > 10000) {
+      spam = { count: 0, lastTime: now };
+    }
+    spam.count++;
+    spam.lastTime = now;
+    this.unoCallCount.set(playerId, spam);
+
+    if (spam.count > 3) {
+      // Penalty: draw 1 card
+      const penaltyCard = this.drawFromDeck();
+      player.hand.push(penaltyCard);
+      return { spam: true, playerId, penaltyCard };
+    }
 
     // Allow UNO call if hand is small enough that multi-play could leave 1 card
     if (player.hand.length >= 2) {

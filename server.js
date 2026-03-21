@@ -70,6 +70,21 @@ function checkCatEvent(room, roomCode) {
   }
 }
 
+// Chat/stamp spam tracker per socket
+const chatSpamTracker = new Map(); // socketId -> { count, lastTime }
+
+function checkChatSpam(socketId) {
+  const now = Date.now();
+  let spam = chatSpamTracker.get(socketId) || { count: 0, lastTime: 0 };
+  if (now - spam.lastTime > 10000) {
+    spam = { count: 0, lastTime: now };
+  }
+  spam.count++;
+  spam.lastTime = now;
+  chatSpamTracker.set(socketId, spam);
+  return spam.count > 3; // blocked after 3 in 10 seconds
+}
+
 io.on('connection', (socket) => {
   console.log(`Connected: ${socket.id}`);
 
@@ -325,6 +340,13 @@ io.on('connection', (socket) => {
     const result = room.game.callUno(playerId);
     if (result.success) {
       io.to(roomCode).emit('uno-called', { playerId, playerName: room.getPlayerBySocketId(socket.id)?.name });
+    } else if (result.spam) {
+      const playerName = room.getPlayerBySocketId(socket.id)?.name;
+      io.to(roomCode).emit('uno-spam', { playerId, playerName });
+      // Send updated state (penalty card added)
+      for (const [sid, player] of room.players) {
+        io.to(sid).emit('game-state', room.game.getStateForPlayer(player.id));
+      }
     }
   });
 
@@ -356,6 +378,13 @@ io.on('connection', (socket) => {
     if (!room) return;
     const player = room.getPlayerBySocketId(socket.id);
     if (!player) return;
+
+    // Spam prevention
+    if (checkChatSpam(socket.id)) {
+      socket.emit('error', { message: '連投しすぎ！少し待ってね' });
+      return;
+    }
+
     io.to(roomCode).emit('chat-message', {
       playerName: player.name,
       message: message.trim().slice(0, 50),
