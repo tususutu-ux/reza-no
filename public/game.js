@@ -163,9 +163,32 @@
     screen.classList.add('active');
   }
 
+  // === Reconnect Banner ===
+  function showReconnectBanner(show) {
+    let banner = $('reconnect-banner');
+    if (show) {
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'reconnect-banner';
+        banner.className = 'reconnect-banner';
+        banner.innerHTML = '接続が切れました。再接続中... <span class="reconnect-dots">...</span>';
+        document.body.appendChild(banner);
+      }
+      banner.classList.remove('hidden');
+    } else {
+      if (banner) banner.classList.add('hidden');
+    }
+  }
+
   // === Socket Connection ===
   function connectSocket() {
-    socket = io();
+    socket = io({
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
+    });
 
     // Room events
     socket.on('room-created', onRoomCreated);
@@ -192,16 +215,18 @@
     socket.on('error', onError);
 
     socket.on('disconnect', () => {
-      showNotification('接続が切れました...', 'skip');
+      showReconnectBanner(true);
     });
 
     socket.on('connect', () => {
+      showReconnectBanner(false);
       // Attempt reconnection
       const savedRoom = sessionStorage.getItem('roomCode');
       const savedId = sessionStorage.getItem('playerId');
       if (savedRoom && savedId) {
         myId = savedId;
         roomCode = savedRoom;
+        showNotification('再接続中...', 'draw');
         socket.emit('reconnect-player', { roomCode: savedRoom, playerId: savedId });
       }
     });
