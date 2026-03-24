@@ -911,8 +911,13 @@
     if (sameValueCards.length >= 2 && card.color !== 'wild') {
       // Toggle selection for multi-play
       const idx = selectedCards.indexOf(card.id);
+      let wasDeselect = false;
+
       if (idx >= 0) {
+        // Deselecting a card - just remove from selection, don't auto-play
         selectedCards.splice(idx, 1);
+        wasDeselect = true;
+        clearTimeout(window._multiSelectTimer);
       } else {
         // Only allow selecting same value cards
         if (selectedCards.length > 0) {
@@ -925,9 +930,8 @@
         selectedCards.push(card.id);
       }
 
-      // If only 1 selected, double-tap to play it immediately
-      if (selectedCards.length === 1) {
-        // Set a timeout - if no second card selected within 500ms, play the single card
+      // If only 1 selected AND it was a new selection (not deselect), auto-play after delay
+      if (selectedCards.length === 1 && !wasDeselect) {
         clearTimeout(window._multiSelectTimer);
         window._multiSelectTimer = setTimeout(() => {
           if (selectedCards.length === 1) {
@@ -941,7 +945,12 @@
               socket.emit('play-card', { roomCode, cardId: singleCardId });
             }
           }
-        }, 600);
+        }, 800);
+      }
+
+      // If 0 selected after deselect, just clear timer
+      if (selectedCards.length === 0) {
+        clearTimeout(window._multiSelectTimer);
       }
 
       // Re-render hand to show selection
