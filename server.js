@@ -140,19 +140,24 @@ io.on('connection', (socket) => {
 
   // === Game Events ===
 
-  socket.on('start-game', ({ roomCode, gameMode }) => {
+  socket.on('start-game', ({ roomCode, gameMode, totalRounds }) => {
     const room = roomManager.getRoom(roomCode);
     if (!room) return socket.emit('error', { message: '部屋が見つかりません' });
     if (socket.id !== room.hostSocketId) {
       return socket.emit('error', { message: 'ホストのみ開始できます' });
     }
 
+    // Store totalRounds on the room
+    if (totalRounds) room.totalRoundsConfig = totalRounds;
+
     const result = room.startGame(gameMode || 'normal');
     if (result.error) return socket.emit('error', { message: result.error });
 
-    // Send personalized state to each player
+    // Send personalized state to each player, include totalRounds
     for (const [sid, player] of room.players) {
-      io.to(sid).emit('game-started', room.game.getStateForPlayer(player.id));
+      const state = room.game.getStateForPlayer(player.id);
+      state.totalRounds = room.totalRoundsConfig || 1;
+      io.to(sid).emit('game-started', state);
     }
   });
 
@@ -404,7 +409,9 @@ io.on('connection', (socket) => {
     if (result.error) return socket.emit('error', { message: result.error });
 
     for (const [sid, player] of room.players) {
-      io.to(sid).emit('game-started', room.game.getStateForPlayer(player.id));
+      const state = room.game.getStateForPlayer(player.id);
+      state.totalRounds = room.totalRoundsConfig || 1;
+      io.to(sid).emit('game-started', state);
     }
   });
 

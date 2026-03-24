@@ -313,13 +313,21 @@
 
   // === Game Handlers ===
   function onGameStarted(state) {
+    // Sync totalRounds from server (so non-host also knows)
+    if (state.totalRounds) totalRounds = state.totalRounds;
     currentRound++;
     gameState = state;
     myHand = state.myHand;
     showScreen(gameScreen);
     renderGameState(state);
+    // Reset play again button state
+    btnPlayAgain.disabled = false;
     if (state.myTurn) {
       showTurnIndicator('あなたのターンです！');
+    }
+    // Show round indicator if multi-round
+    if (totalRounds > 1) {
+      showNotification(`ラウンド ${currentRound}/${totalRounds}`, 'draw');
     }
   }
 
@@ -556,12 +564,38 @@
     const myScore = isWinner ? scores.winnerScore : 0;
     updateStatsOnGameOver(playerName, isWinner, myScore);
 
+    // Show round progress info for everyone
+    let roundInfo = $('round-progress-info');
+    if (!roundInfo) {
+      roundInfo = document.createElement('div');
+      roundInfo.id = 'round-progress-info';
+      roundInfo.style.cssText = 'text-align:center;margin-bottom:12px;font-size:14px;color:#6b7280;';
+      resultScores.parentElement.insertBefore(roundInfo, resultScores);
+    }
+
+    if (totalRounds > 1 && !isLastRound) {
+      roundInfo.textContent = `ラウンド ${currentRound} / ${totalRounds}`;
+      roundInfo.style.display = 'block';
+    } else if (totalRounds > 1 && isLastRound) {
+      roundInfo.textContent = `全 ${totalRounds} ラウンド終了！`;
+      roundInfo.style.display = 'block';
+    } else {
+      roundInfo.style.display = 'none';
+    }
+
     // Show play again / next round button
     if (isHost) {
       btnPlayAgain.classList.remove('hidden');
-      btnPlayAgain.textContent = isLastRound ? 'もう一回' : `次のラウンドへ (${currentRound}/${totalRounds})`;
+      btnPlayAgain.textContent = isLastRound ? 'もう一回' : `次のラウンドへ`;
     } else {
-      btnPlayAgain.classList.add('hidden');
+      if (!isLastRound && totalRounds > 1) {
+        // Non-host sees waiting message
+        btnPlayAgain.classList.remove('hidden');
+        btnPlayAgain.textContent = 'ホストが次のラウンドを開始します...';
+        btnPlayAgain.disabled = true;
+      } else {
+        btnPlayAgain.classList.add('hidden');
+      }
     }
   }
 
@@ -1109,7 +1143,7 @@
 
     btnStart.addEventListener('click', () => {
       currentRound = 0;
-      socket.emit('start-game', { roomCode, gameMode });
+      socket.emit('start-game', { roomCode, gameMode, totalRounds });
     });
 
     // Round selection buttons
