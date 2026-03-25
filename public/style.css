@@ -312,7 +312,48 @@ input[type="text"]::placeholder { color: #d1d5db; }
   background: rgba(255, 255, 255, 0.25);
   box-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
 }
+.opponent.next-turn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px dashed rgba(255, 255, 255, 0.3);
+}
 .opponent.disconnected { opacity: 0.4; }
+
+.turn-badge {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.turn-badge.now {
+  background: #ec4899;
+  color: white;
+  animation: pulse 1s infinite;
+}
+.turn-badge.next {
+  background: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 10px;
+}
+
+.my-turn-order {
+  text-align: center;
+  font-size: 12px;
+  padding: 2px 0;
+  color: rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
+}
+.my-turn-order.active {
+  color: #ec4899;
+  font-weight: 800;
+  font-size: 14px;
+  animation: pulse 1s infinite;
+}
+.my-turn-order.next {
+  color: #f9a8d4;
+  font-weight: 700;
+}
 
 .opponent-name {
   font-size: 12px;

@@ -703,15 +703,52 @@
 
   function renderOpponents(players) {
     opponentsArea.innerHTML = '';
-    players.forEach(p => {
+
+    // Build turn order to show position numbers
+    // players array is in seating order, direction determines flow
+    const direction = gameState?.direction || 1;
+    const currentIdx = players.findIndex(p => p.isCurrentTurn);
+    const myIdx = players.findIndex(p => p.id === myId);
+    const total = players.length;
+
+    // Calculate how many turns until each player goes (from current player)
+    function turnsFromCurrent(playerIdx) {
+      if (playerIdx === currentIdx) return 0;
+      let steps = 0;
+      let idx = currentIdx;
+      for (let i = 0; i < total; i++) {
+        idx = (idx + direction + total) % total;
+        steps++;
+        if (idx === playerIdx) return steps;
+      }
+      return total;
+    }
+
+    // Find who plays right before me
+    const myTurnsFromCurrent = turnsFromCurrent(myIdx);
+
+    players.forEach((p, idx) => {
       if (p.id === myId) return;
+
+      const turnsAway = turnsFromCurrent(idx);
+      const isNext = turnsAway === 1; // Next to play after current
+      const isBeforeMe = turnsAway === (myTurnsFromCurrent - 1 + total) % total && myTurnsFromCurrent > 0;
 
       const div = document.createElement('div');
       div.className = 'opponent' +
         (p.isCurrentTurn ? ' current-turn' : '') +
+        (isNext && !p.isCurrentTurn ? ' next-turn' : '') +
         (!p.connected ? ' disconnected' : '');
 
-      let html = `<div class="opponent-name">${escapeHtml(p.name)}</div>`;
+      let html = '';
+      // Turn order badge
+      if (p.isCurrentTurn) {
+        html += '<div class="turn-badge now">NOW</div>';
+      } else if (isNext) {
+        html += '<div class="turn-badge next">次</div>';
+      }
+
+      html += `<div class="opponent-name">${escapeHtml(p.name)}</div>`;
       html += '<div class="opponent-cards">';
       const displayCount = Math.min(p.cardCount, 10);
       for (let i = 0; i < displayCount; i++) {
@@ -726,6 +763,26 @@
       div.innerHTML = html;
       opponentsArea.appendChild(div);
     });
+
+    // Show "あなた" position indicator below opponents
+    let myTurnLabel = $('my-turn-order');
+    if (!myTurnLabel) {
+      myTurnLabel = document.createElement('div');
+      myTurnLabel.id = 'my-turn-order';
+      myTurnLabel.className = 'my-turn-order';
+      opponentsArea.parentElement.insertBefore(myTurnLabel, opponentsArea.nextSibling);
+    }
+
+    if (gameState?.myTurn) {
+      myTurnLabel.textContent = '▶ あなたのターン！';
+      myTurnLabel.className = 'my-turn-order active';
+    } else if (myTurnsFromCurrent === 1) {
+      myTurnLabel.textContent = '▶ 次はあなた！';
+      myTurnLabel.className = 'my-turn-order next';
+    } else if (myTurnsFromCurrent > 0) {
+      myTurnLabel.textContent = `あと${myTurnsFromCurrent}人`;
+      myTurnLabel.className = 'my-turn-order';
+    }
   }
 
   function renderTopCard(card, currentColor) {
