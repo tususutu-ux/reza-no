@@ -649,6 +649,19 @@ input[type="text"]::placeholder { color: #d1d5db; }
   padding: 12px 24px;
 }
 
+.btn-auto {
+  background: linear-gradient(135deg, #475569, #334155);
+  padding: 8px 16px;
+  font-size: 12px;
+  border-radius: 20px;
+  opacity: 0.7;
+}
+.btn-auto.active {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  opacity: 1;
+  animation: pulse 1.5s infinite;
+}
+
 /* Ball throw button */
 .btn-ball {
   background: linear-gradient(135deg, #f97316, #ef4444);

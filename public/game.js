@@ -13,6 +13,8 @@
   let totalRounds = 1;
   let currentRound = 0;
   let gameMode = 'normal';
+  let autoPlayEnabled = false;
+  let autoPlayTimer = null;
 
   // === Stats ===
   const STATS_KEY = 'resano-stats';
@@ -354,6 +356,96 @@
       } else {
         showTurnIndicator('あなたのターンです！');
       }
+      // Trigger auto-play if enabled
+      if (autoPlayEnabled) {
+        scheduleAutoPlay();
+      }
+    }
+  }
+
+  // === Auto-Play ===
+  function scheduleAutoPlay() {
+    clearTimeout(autoPlayTimer);
+    autoPlayTimer = setTimeout(() => {
+      if (!autoPlayEnabled || !gameState || !gameState.myTurn) return;
+      if (gameState.state !== 'playing') return;
+      doAutoPlay();
+    }, 1500); // 1.5 second delay so it looks natural
+  }
+
+  function doAutoPlay() {
+    if (!gameState || !gameState.myTurn || !roomCode) return;
+
+    const topCard = gameState.topCard;
+    const currentColor = gameState.currentColor;
+
+    // If pending draw and can't stack, draw
+    if (gameState.pendingDrawCount > 0 && !gameState.canStackDraw) {
+      socket.emit('draw-card', { roomCode });
+      return;
+    }
+
+    // If pending draw and CAN stack, play the stack card
+    if (gameState.pendingDrawCount > 0 && gameState.canStackDraw) {
+      const stackCard = myHand.find(c => c.value === gameState.pendingDrawType);
+      if (stackCard) {
+        if (stackCard.color === 'wild') {
+          const colors = ['red', 'blue', 'green', 'yellow'];
+          const colorCounts = {};
+          myHand.forEach(c => { if (c.color !== 'wild') colorCounts[c.color] = (colorCounts[c.color] || 0) + 1; });
+          const bestColor = Object.entries(colorCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || colors[Math.floor(Math.random() * 4)];
+          socket.emit('play-card', { roomCode, cardId: stackCard.id, chosenColor: bestColor });
+        } else {
+          socket.emit('play-card', { roomCode, cardId: stackCard.id });
+        }
+        return;
+      }
+    }
+
+    // Find playable cards (prefer number cards, avoid wilds)
+    const playable = myHand.filter(c => {
+      if (c.color === 'wild') return true;
+      if (c.color === currentColor) return true;
+      if (c.value === topCard.value) return true;
+      return false;
+    });
+
+    // Can't finish with action card - if only 1 card left, only play numbers
+    const filtered = myHand.length === 1
+      ? playable.filter(c => !['skip', 'reverse', 'draw2', 'wild', 'wild4'].includes(c.value))
+      : playable;
+
+    if (filtered.length > 0) {
+      // Sort: prefer number cards, then action, then wild last
+      filtered.sort((a, b) => {
+        const rank = (c) => {
+          if (c.color === 'wild') return 10;
+          if (['skip', 'reverse', 'draw2'].includes(c.value)) return 5;
+          return 0;
+        };
+        return rank(a) - rank(b);
+      });
+
+      // Call UNO if needed
+      if (myHand.length === 2) {
+        socket.emit('call-uno', { roomCode });
+      }
+
+      const card = filtered[0];
+      if (card.color === 'wild') {
+        const colors = ['red', 'blue', 'green', 'yellow'];
+        const colorCounts = {};
+        myHand.forEach(c => { if (c.color !== 'wild') colorCounts[c.color] = (colorCounts[c.color] || 0) + 1; });
+        const bestColor = Object.entries(colorCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || colors[Math.floor(Math.random() * 4)];
+        socket.emit('play-card', { roomCode, cardId: card.id, chosenColor: bestColor });
+      } else {
+        socket.emit('play-card', { roomCode, cardId: card.id });
+      }
+    } else {
+      // No playable card - draw
+      if (gameState.canDraw) {
+        socket.emit('draw-card', { roomCode });
+      }
     }
   }
 
@@ -498,6 +590,15 @@
   }
 
   function onGameOver(scores) {
+    // Reset auto-play
+    autoPlayEnabled = false;
+    clearTimeout(autoPlayTimer);
+    const btnAutoEl = $('btn-auto');
+    if (btnAutoEl) {
+      btnAutoEl.classList.remove('active');
+      btnAutoEl.textContent = '🤖 自動';
+    }
+
     showScreen(resultScreen);
 
     const isLastRound = currentRound >= totalRounds;
@@ -1282,6 +1383,20 @@
     btnPass.addEventListener('click', () => {
       if (!roomCode) return;
       socket.emit('pass-turn', { roomCode });
+    });
+
+    // Auto-play toggle
+    const btnAuto = $('btn-auto');
+    btnAuto.addEventListener('click', () => {
+      autoPlayEnabled = !autoPlayEnabled;
+      btnAuto.classList.toggle('active', autoPlayEnabled);
+      btnAuto.textContent = autoPlayEnabled ? '🤖 自動ON' : '🤖 自動';
+      if (autoPlayEnabled && gameState && gameState.myTurn) {
+        scheduleAutoPlay();
+      }
+      if (!autoPlayEnabled) {
+        clearTimeout(autoPlayTimer);
+      }
     });
 
     // Color picker buttons
