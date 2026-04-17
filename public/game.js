@@ -800,6 +800,21 @@
     renderHand(state.myHand, state);
     updateGameInfo(state);
     updateActionButtons(state);
+    updateMyTurnHighlight(state);
+  }
+
+  function updateMyTurnHighlight(state) {
+    const gameScreen = $('game-screen');
+    const badge = $('my-turn-badge');
+    if (!gameScreen || !badge) return;
+
+    if (state.myTurn) {
+      gameScreen.classList.add('my-turn-active');
+      badge.classList.remove('hidden');
+    } else {
+      gameScreen.classList.remove('my-turn-active');
+      badge.classList.add('hidden');
+    }
   }
 
   function renderOpponents(players) {

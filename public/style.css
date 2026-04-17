@@ -817,6 +817,61 @@ input[type="text"]::placeholder { color: #d1d5db; }
   box-shadow: 0 8px 24px rgba(236, 72, 153, 0.3);
 }
 
+/* My turn glow - 画面全体の縁を光らせる */
+#game-screen.my-turn-active::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 95;
+  border: 6px solid #ec4899;
+  border-radius: 12px;
+  box-shadow:
+    inset 0 0 30px rgba(236, 72, 153, 0.5),
+    0 0 30px rgba(236, 72, 153, 0.6);
+  animation: turnGlow 1.5s ease-in-out infinite;
+}
+
+@keyframes turnGlow {
+  0%, 100% {
+    box-shadow:
+      inset 0 0 20px rgba(236, 72, 153, 0.4),
+      0 0 20px rgba(236, 72, 153, 0.5);
+    border-color: #ec4899;
+  }
+  50% {
+    box-shadow:
+      inset 0 0 50px rgba(236, 72, 153, 0.8),
+      0 0 50px rgba(236, 72, 153, 0.9);
+    border-color: #f472b6;
+  }
+}
+
+/* 常時表示の「あなたのターン！」バッジ */
+.my-turn-badge {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #ec4899, #f43f5e);
+  color: white;
+  padding: 8px 24px;
+  border-radius: 50px;
+  font-size: 16px;
+  font-weight: 900;
+  z-index: 96;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.5);
+  animation: badgePulse 1.2s ease-in-out infinite;
+  letter-spacing: 1px;
+}
+.my-turn-badge.hidden { display: none; }
+
+@keyframes badgePulse {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  50% { transform: translateX(-50%) scale(1.08); }
+}
+
 /* Color picker modal */
 .modal {
   position: fixed;
