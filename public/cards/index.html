@@ -6,81 +6,109 @@
 <title>使命発見カード — 引いて、感じて、オプチャに書く</title>
 <style>
   :root {
-    --bg: #0e1124; --bg2: #161a3a;
-    --panel: rgba(255,255,255,0.06);
-    --ink: #f4f3ff; --muted: #a7a9cc;
-    --accent: #ffcf6b; --accent2: #8b7bff;
-    --line: rgba(255,255,255,0.12); --good: #6be7a8;
+    --ink: #4b4068; --ink-strong: #382c57; --muted: #8a82a6;
+    --accent: #b8842a;     /* gold (text) */
+    --accent2: #8b7bff;    /* violet */
+    --line: rgba(125,105,180,0.18);
+    --serif: "Hiragino Mincho ProN","Yu Mincho",YuMincho,"Noto Serif JP","Songti SC",serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; padding: 0; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+    font-family: var(--sans);
     color: var(--ink);
     background:
-      radial-gradient(1200px 600px at 70% -10%, rgba(139,123,255,0.25), transparent),
-      radial-gradient(900px 500px at 10% 110%, rgba(255,207,107,0.12), transparent),
-      linear-gradient(160deg, var(--bg), var(--bg2));
+      radial-gradient(1100px 700px at 80% -8%, rgba(255,196,228,0.55), transparent 60%),
+      radial-gradient(1000px 700px at 0% 110%, rgba(186,206,255,0.55), transparent 60%),
+      radial-gradient(900px 600px at 50% 40%, rgba(255,238,196,0.45), transparent 65%),
+      linear-gradient(165deg, #fdf9ff, #f4eeff 45%, #fff5ef);
+    background-attachment: fixed;
     min-height: 100vh; -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 760px; margin: 0 auto; padding: 18px 14px 50px; }
-  h1 { font-size: 21px; letter-spacing: .04em; margin: 4px 0 2px; }
-  .sub { color: var(--muted); font-size: 13px; margin: 0 0 16px; }
 
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 18px; backdrop-filter: blur(8px); }
+  /* 漂う光の粒・オーラ（背景） */
+  .bgfx { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+  .particle { position: absolute; bottom: -24px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,229,170,.95), rgba(255,229,170,0) 70%);
+    animation: rise linear infinite; }
+  @keyframes rise {
+    0% { transform: translateY(0) scale(.5); opacity: 0; }
+    12% { opacity: .85; }
+    88% { opacity: .6; }
+    100% { transform: translateY(-112vh) scale(1.1); opacity: 0; }
+  }
+
+  .wrap { max-width: 760px; margin: 0 auto; padding: 26px 14px 56px; position: relative; z-index: 1; }
+  h1 { font-family: var(--serif); font-size: 25px; letter-spacing: .12em; margin: 4px 0 4px; color: var(--ink-strong); font-weight: 600; }
+  .sub { font-family: var(--serif); color: #6a5f86; font-size: 14px; letter-spacing: .06em; margin: 0 0 20px; line-height: 1.7; }
+
+  .panel { background: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.8); border-radius: 22px; padding: 20px;
+    backdrop-filter: blur(10px); box-shadow: 0 14px 40px rgba(139,123,255,0.16); }
 
   button, .btn {
-    font-family: inherit; cursor: pointer; border: none; border-radius: 12px; font-size: 15px; font-weight: 700;
-    padding: 13px 18px; transition: transform .08s ease, opacity .2s; letter-spacing: .03em;
+    font-family: var(--sans); cursor: pointer; border: none; border-radius: 14px; font-size: 15px; font-weight: 700;
+    padding: 13px 18px; transition: transform .08s ease, box-shadow .2s, opacity .2s; letter-spacing: .04em;
     display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none;
   }
   button:active, .btn:active { transform: scale(.97); }
-  .btn-primary { background: linear-gradient(135deg, var(--accent), #ffb347); color: #2a1c00; }
-  .btn-accent  { background: linear-gradient(135deg, var(--accent2), #6a5bff); color: #fff; }
-  .btn-ghost   { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+  button:disabled { opacity: .5; }
+  .btn-primary { background: linear-gradient(135deg, #ffd980, #f3b441); color: #5a3c00; box-shadow: 0 8px 22px rgba(243,180,65,.4); }
+  .btn-accent  { background: linear-gradient(135deg, #a99bff, #7c6bff); color: #fff; box-shadow: 0 8px 24px rgba(124,107,255,.4); }
+  .btn-ghost   { background: rgba(255,255,255,0.6); color: #6a5f86; border: 1px solid rgba(139,123,255,.35); }
   .full { width: 100%; }
 
   /* card */
-  .deck-area { text-align: center; padding: 6px 0 2px; }
-  .scene { perspective: 1200px; display: inline-block; margin: 4px auto 12px; }
-  .card3d { width: 190px; height: 270px; position: relative; transform-style: preserve-3d; transition: transform .7s cubic-bezier(.2,.8,.2,1); cursor: pointer; }
+  .deck-area { text-align: center; padding: 8px 0 2px; }
+  .scene { perspective: 1200px; display: inline-block; margin: 10px auto 16px; position: relative; }
+  .scene::before { content: ""; position: absolute; inset: -46px; border-radius: 50%; z-index: -1;
+    background: radial-gradient(circle, rgba(255,212,140,.55), rgba(168,150,255,.30) 45%, transparent 72%);
+    filter: blur(22px); animation: breathe 5.5s ease-in-out infinite; }
+  @keyframes breathe { 0%,100% { transform: scale(.9); opacity: .65; } 50% { transform: scale(1.12); opacity: 1; } }
+  .card3d { width: 196px; height: 280px; position: relative; transform-style: preserve-3d; transition: transform .8s cubic-bezier(.2,.8,.2,1); cursor: pointer; }
   .card3d.flipped { transform: rotateY(180deg); }
-  .face { position: absolute; inset: 0; border-radius: 18px; backface-visibility: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; text-align: center; box-shadow: 0 18px 40px rgba(0,0,0,.45); }
-  .face.back { background: repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 8px, transparent 8px 16px), linear-gradient(150deg, #2a2f63, #14173a); border: 1px solid var(--line); }
-  .face.back .seal { font-size: 42px; opacity: .9; }
-  .face.back .label { color: var(--muted); font-size: 11px; letter-spacing: .3em; margin-top: 10px; }
-  .face.front { transform: rotateY(180deg); background: linear-gradient(155deg, #fff8ea, #ffe9c2); color: #2a1c00; border: 1px solid #ffce82; }
-  .face.front .emoji { font-size: 38px; }
-  .face.front .word { font-size: 28px; font-weight: 800; margin: 8px 0 6px; letter-spacing: .06em; }
-  .face.front .prompt { font-size: 13px; line-height: 1.7; color: #6b4e1a; }
+  .face { position: absolute; inset: 0; border-radius: 20px; backface-visibility: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 18px; text-align: center; box-shadow: 0 20px 46px rgba(95,75,160,.32); }
+  .face.back {
+    background:
+      radial-gradient(circle at 50% 32%, rgba(255,255,255,.18), transparent 42%),
+      radial-gradient(circle at 50% 38%, #5a4ca0, #2b2160 72%);
+    border: 1px solid rgba(255,255,255,.25);
+  }
+  .face.back .seal { font-size: 48px; color: #ffe6a6; text-shadow: 0 0 18px rgba(255,221,150,.9); animation: breathe 5.5s ease-in-out infinite; }
+  .face.back .label { font-family: var(--serif); color: #d9d2ff; font-size: 12px; letter-spacing: .28em; margin-top: 14px; }
+  .face.front { transform: rotateY(180deg); background: linear-gradient(155deg, #fffdf7, #fff2d8); color: #4a3a1e; border: 1px solid #ffe1a8; }
+  .face.front .emoji { font-size: 40px; filter: drop-shadow(0 2px 6px rgba(0,0,0,.12)); }
+  .face.front .word { font-family: var(--serif); font-size: 30px; font-weight: 700; margin: 10px 0 8px; letter-spacing: .1em; color: #4a3a1e; }
+  .face.front .prompt { font-family: var(--serif); font-size: 13px; line-height: 1.8; color: #7a5f33; }
 
   .draw-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 4px; }
-  .hint { color: var(--muted); font-size: 13px; line-height: 1.7; margin: 14px 2px 0; }
-  .hint b { color: var(--accent); }
+  .hint { font-family: var(--serif); color: #6a5f86; font-size: 13.5px; line-height: 1.9; margin: 16px 4px 0; }
+  .hint b { color: var(--accent); font-weight: 700; }
 
-  .opcha-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 24px 2px 8px; }
-  .opcha-head .t { font-size: 14px; color: var(--muted); letter-spacing: .08em; }
+  .opcha-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 28px 2px 10px; }
+  .opcha-head .t { font-family: var(--serif); font-size: 15px; color: var(--ink-strong); letter-spacing: .1em; }
   .opcha-actions { display: flex; gap: 8px; }
   .opcha-actions .btn { font-size: 13px; padding: 9px 13px; }
-  .frame-box { border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: #fff; }
+  .frame-box { border-radius: 18px; overflow: hidden; border: 1px solid rgba(255,255,255,.8); background: #fff; box-shadow: 0 14px 40px rgba(139,123,255,0.16); }
   iframe { width: 100%; height: 620px; border: 0; display: block; }
 
-  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #2a2f63; border: 1px solid var(--line); padding: 10px 18px; border-radius: 999px; font-size: 13px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 50; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: rgba(74,63,99,.96); color: #fff; padding: 10px 18px; border-radius: 999px; font-size: 13px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 50; box-shadow: 0 8px 24px rgba(74,63,99,.4); }
   .toast.show { opacity: 1; }
   .hidden { display: none !important; }
 </style>
 </head>
 <body>
+<div class="bgfx" id="bgfx" aria-hidden="true"></div>
 <div class="wrap">
 
-  <h1>🃏 使命発見カード</h1>
-  <p class="sub">カードを引いて、感じたことをオプチャに書いてシェアしよう</p>
+  <h1>✦ 使命発見カード ✦</h1>
+  <p class="sub">心を静めて、一枚を引く。<br>潜在意識からのメッセージを、そっと受け取ろう。</p>
 
   <!-- ===== カードを引く ===== -->
   <div class="panel deck-area">
     <div class="scene">
       <div id="card3d" class="card3d">
-        <div class="face back"><div class="seal">✦</div><div class="label">TAP TO DRAW</div></div>
+        <div class="face back"><div class="seal">✦</div><div class="label">そっと、ふれる</div></div>
         <div class="face front">
           <div class="emoji" id="cardEmoji">✨</div>
           <div class="word" id="cardWord">—</div>
@@ -96,14 +124,14 @@
       <button id="saveImgBtn" class="btn-primary hidden">📥 カード画像を保存</button>
     </div>
     <p class="hint" id="hint">
-      まずはカードを引いてみましょう。<br>
-      引いたら、下の<b>オプチャ</b>に <b>お名前（ニックネーム）</b>と感じたことを書いて投稿してね。
+      深呼吸して、心が惹かれた瞬間にカードへふれましょう。<br>
+      浮かんできた感覚を、下の<b>オプチャ</b>に <b>お名前</b>とともに、そのまま綴ってみて。
     </p>
   </div>
 
   <!-- ===== オプチャ（みんなの気持ち） ===== -->
   <div class="opcha-head">
-    <span class="t">▷ みんなの気持ち（オプチャ）</span>
+    <span class="t">✧ みんなの気づき（オプチャ）</span>
     <div class="opcha-actions">
       <button id="reloadBtn" class="btn-ghost">🔄 更新</button>
       <a id="openTabBtn" class="btn-primary" href="https://www.reservestock.jp/page2/open_threads/32" target="_blank" rel="noopener">✍️ オプチャを開く</a>
@@ -138,6 +166,27 @@
 
 <script>
 const $ = (id) => document.getElementById(id);
+
+/* 漂う光の粒を生成（スピリチュアルな演出） */
+(function spawnParticles(){
+  const box = document.getElementById("bgfx");
+  if (!box) return;
+  const COLORS = ["rgba(255,229,170,", "rgba(199,183,255,", "rgba(255,200,224,"];
+  const n = window.innerWidth < 680 ? 14 : 22;
+  for (let i = 0; i < n; i++) {
+    const p = document.createElement("div");
+    p.className = "particle";
+    const size = 5 + Math.random() * 12;
+    const col = COLORS[i % COLORS.length];
+    p.style.width = p.style.height = size + "px";
+    p.style.left = (Math.random() * 100) + "%";
+    p.style.background = "radial-gradient(circle, " + col + ".95), " + col + "0) 70%)";
+    p.style.animationDuration = (12 + Math.random() * 16) + "s";
+    p.style.animationDelay = (-Math.random() * 24) + "s";
+    box.appendChild(p);
+  }
+})();
+
 const DECK = [
   { e:"🌱", w:"芽生え",   p:"いま、あなたの中で静かに育ちはじめているものは？" },
   { e:"🔥", w:"情熱",     p:"思い出すだけで胸が熱くなるものは何ですか？" },
