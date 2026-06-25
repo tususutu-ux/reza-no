@@ -92,6 +92,9 @@
       <button id="drawBtn" class="btn-accent">カードを引く</button>
       <button id="copyBtn" class="btn-ghost hidden">この言葉をコピー</button>
     </div>
+    <div class="draw-row" style="margin-top:8px">
+      <button id="saveImgBtn" class="btn-primary hidden">📥 カード画像を保存</button>
+    </div>
     <p class="hint" id="hint">
       まずはカードを引いてみましょう。<br>
       引いたら、下の<b>オプチャ</b>に <b>お名前（ニックネーム）</b>と感じたことを書いて投稿してね。
@@ -112,7 +115,8 @@
     <div style="font-size:34px">💬</div>
     <p style="margin:8px 0 16px;line-height:1.8;color:var(--muted)">
       スマホでは、オプチャを別画面で開きます。<br>
-      下のボタンから <b style="color:var(--ink)">お名前</b> と <b style="color:var(--ink)">感じたこと</b> を書いて投稿してね。
+      下のボタンから <b style="color:var(--ink)">お名前</b> と <b style="color:var(--ink)">感じたこと</b> を書いて投稿してね。<br>
+      <span style="font-size:12px">※「📥 カード画像を保存」で写真に保存しておくと、投稿時に画像も添付できます。</span>
     </p>
     <a class="btn btn-primary full" href="https://www.reservestock.jp/page2/open_threads/32"
        target="_blank" rel="noopener" style="font-size:16px;padding:16px">✍️ オプチャを開く（見る・書く）</a>
@@ -189,6 +193,7 @@ function drawCard(){
     card3d.classList.add("flipped");
     $("drawBtn").textContent = "もう一度引く";
     $("copyBtn").classList.remove("hidden");
+    $("saveImgBtn").classList.remove("hidden");
   }, wasFlipped ? 350 : 0);
 }
 
@@ -200,6 +205,64 @@ $("copyBtn").addEventListener("click", async ()=>{
   try { await navigator.clipboard.writeText(currentCard.w); toast("「"+currentCard.w+"」をコピーしました ✨"); }
   catch { toast("コピーできませんでした"); }
 });
+
+/* ---------- カードを画像(PNG)にして保存・共有 ---------- */
+function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function wrapDraw(ctx,text,cx,centerY,maxW,lh){
+  const lines=[]; let line="";
+  for(const ch of text){ if(ctx.measureText(line+ch).width>maxW && line){ lines.push(line); line=ch; } else line+=ch; }
+  if(line) lines.push(line);
+  let y = centerY - (lines.length-1)*lh/2;
+  for(const l of lines){ ctx.fillText(l,cx,y); y+=lh; }
+}
+function renderCardBlob(card){
+  return new Promise((resolve)=>{
+    const W=720, H=1040, m=44, cw=W-m*2, ch=H-m*2, r=52, cx=W/2;
+    const cv=document.createElement("canvas"); cv.width=W; cv.height=H;
+    const ctx=cv.getContext("2d");
+    const g=ctx.createLinearGradient(m,m,m+cw,m+ch);
+    g.addColorStop(0,"#fff8ea"); g.addColorStop(1,"#ffe9c2");
+    roundRect(ctx,m,m,cw,ch,r); ctx.fillStyle=g; ctx.fill();
+    ctx.lineWidth=4; ctx.strokeStyle="#ffce82"; ctx.stroke();
+    ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.font='130px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+    ctx.fillText(card.e, cx, m+ch*0.26);
+    ctx.fillStyle="#2a1c00";
+    ctx.font='800 92px -apple-system,"Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif';
+    ctx.fillText(card.w, cx, m+ch*0.46);
+    ctx.strokeStyle="rgba(107,78,26,.25)"; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(cx-90,m+ch*0.555); ctx.lineTo(cx+90,m+ch*0.555); ctx.stroke();
+    ctx.fillStyle="#6b4e1a";
+    ctx.font='36px -apple-system,"Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif';
+    wrapDraw(ctx, card.p, cx, m+ch*0.68, cw-150, 56);
+    ctx.fillStyle="rgba(107,78,26,.5)";
+    ctx.font='28px -apple-system,"Hiragino Sans",sans-serif';
+    ctx.fillText("🃏 使命発見カード", cx, m+ch-44);
+    cv.toBlob((b)=>resolve(b), "image/png");
+  });
+}
+async function saveCardImage(){
+  if(!currentCard) return;
+  $("saveImgBtn").disabled = true;
+  try{
+    const blob = await renderCardBlob(currentCard);
+    const file = new File([blob], "card_"+currentCard.w+".png", { type:"image/png" });
+    // スマホ等：共有シート（写真に保存 → オプチャ投稿時に添付できる）
+    if (navigator.canShare && navigator.canShare({ files:[file] })) {
+      try { await navigator.share({ files:[file], title:"使命発見カード", text:currentCard.w }); return; }
+      catch(e){ if(e && e.name==="AbortError") return; /* それ以外はダウンロードへ */ }
+    }
+    // PC等：ダウンロード
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = file.name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1500);
+    toast("カード画像を保存しました 📥");
+  } catch(e){ toast("画像の生成に失敗しました"); }
+  finally { $("saveImgBtn").disabled = false; }
+}
+$("saveImgBtn").addEventListener("click", saveCardImage);
 
 $("reloadBtn").addEventListener("click", ()=>{
   const f = $("opchaFrame");
