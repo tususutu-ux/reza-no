@@ -483,6 +483,64 @@ io.on('connection', (socket) => {
   });
 });
 
+// =====================================================================
+//  使命発見カード（mcard:*）— UNOとは独立した相乗りモジュール。
+//  既存のリザーノ処理には一切干渉しません（イベント名を mcard: で分離）。
+//  画面は public/cards/ で配信され、/cards/ でアクセスできます。
+// =====================================================================
+const cardRooms = new Map(); // roomName -> { posts: [], members: Map<socketId, name> }
+
+function mcardGetRoom(name) {
+  if (!cardRooms.has(name)) cardRooms.set(name, { posts: [], members: new Map() });
+  return cardRooms.get(name);
+}
+function mcardMemberNames(room) {
+  return [...new Set([...room.members.values()])];
+}
+
+io.on('connection', (socket) => {
+  let joinedRoom = null;
+
+  socket.on('mcard:join', ({ room, name } = {}) => {
+    if (!room || !name) return;
+    const rn = String(room).trim().slice(0, 24);
+    const nm = String(name).trim().slice(0, 20);
+    if (!rn || !nm) return;
+    joinedRoom = rn;
+    const r = mcardGetRoom(rn);
+    r.members.set(socket.id, nm);
+    socket.join('mcard:' + rn);
+    socket.emit('mcard:history', r.posts);
+    io.to('mcard:' + rn).emit('mcard:members', mcardMemberNames(r));
+  });
+
+  socket.on('mcard:post', ({ room, name, word, emoji, feeling } = {}) => {
+    if (!room || !feeling) return;
+    const rn = String(room).trim().slice(0, 24);
+    const r = mcardGetRoom(rn);
+    const post = {
+      id: socket.id + ':' + Date.now(),
+      name: String(name || 'だれか').slice(0, 20),
+      word: String(word || '').slice(0, 20),
+      emoji: String(emoji || '').slice(0, 8),
+      feeling: String(feeling).slice(0, 1000),
+      created_at: new Date().toISOString(),
+    };
+    r.posts.push(post);
+    if (r.posts.length > 500) r.posts.shift();
+    io.to('mcard:' + rn).emit('mcard:post', post);
+  });
+
+  socket.on('disconnect', () => {
+    if (joinedRoom && cardRooms.has(joinedRoom)) {
+      const r = cardRooms.get(joinedRoom);
+      r.members.delete(socket.id);
+      io.to('mcard:' + joinedRoom).emit('mcard:members', mcardMemberNames(r));
+      if (r.members.size === 0 && r.posts.length === 0) cardRooms.delete(joinedRoom);
+    }
+  });
+});
+
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
