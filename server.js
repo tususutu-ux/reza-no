@@ -483,12 +483,6 @@ io.on('connection', (socket) => {
   });
 });
 
-// =====================================================================
-//  使命発見カード（/cards/）は public/cards/index.html の静的ページ。
-//  カードを引くUI＋リザストのオプチャ(open_thread)埋め込みで完結するため、
-//  サーバー側の処理は不要（UNO本体に一切干渉しない）。
-// =====================================================================
-
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
