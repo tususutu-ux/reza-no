@@ -484,95 +484,10 @@ io.on('connection', (socket) => {
 });
 
 // =====================================================================
-//  使命発見カード（mcard:*）— UNOとは独立した相乗りモジュール。
-//  既存のリザーノ処理には一切干渉しません（イベント名を mcard: で分離）。
-//  画面は public/cards/ で配信され、/cards/ でアクセスできます。
+//  使命発見カード（/cards/）は public/cards/index.html の静的ページ。
+//  カードを引くUI＋リザストのオプチャ(open_thread)埋め込みで完結するため、
+//  サーバー側の処理は不要（UNO本体に一切干渉しない）。
 // =====================================================================
-const cardRooms = new Map(); // roomName -> { posts: [], members: Map<socketId, name> }
-
-function mcardGetRoom(name) {
-  if (!cardRooms.has(name)) cardRooms.set(name, { posts: [], members: new Map() });
-  return cardRooms.get(name);
-}
-function mcardMemberNames(room) {
-  return [...new Set([...room.members.values()])];
-}
-
-// --- リザスト オプチャ連携（任意・環境変数で設定） ---
-//  Render の Environment に RS_API_KEY と RS_OPEN_THREAD_ID を設定すると有効化。
-//  キーはコードに書かず環境変数からのみ読む。未設定なら連携はオフ（何もしない）。
-function mcardOpchaEnabled() {
-  return !!(process.env.RS_API_KEY && process.env.RS_OPEN_THREAD_ID);
-}
-async function mcardPostToOpcha(post) {
-  if (!mcardOpchaEnabled()) return;
-  try {
-    // 絵文字（4バイト）はリザスト側で化けるためテキスト中心で組む
-    const body = `【使命発見カード】${post.word}\n${post.name}：${post.feeling}`;
-    const params = new URLSearchParams();
-    params.set('open_thread_id', process.env.RS_OPEN_THREAD_ID);
-    params.set('body', body);
-    const base = process.env.RS_BASE_URL || 'https://www.reservestock.jp';
-    const res = await fetch(base + '/api/post_open_thread', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + process.env.RS_API_KEY,
-        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-      },
-      body: params,
-    });
-    if (!res.ok) console.warn('[mcard] オプチャ投稿失敗 HTTP', res.status);
-  } catch (e) {
-    console.warn('[mcard] オプチャ投稿エラー', e.message);
-  }
-}
-
-io.on('connection', (socket) => {
-  let joinedRoom = null;
-
-  socket.on('mcard:join', ({ room, name } = {}) => {
-    if (!room || !name) return;
-    const rn = String(room).trim().slice(0, 24);
-    const nm = String(name).trim().slice(0, 20);
-    if (!rn || !nm) return;
-    joinedRoom = rn;
-    const r = mcardGetRoom(rn);
-    r.members.set(socket.id, nm);
-    socket.join('mcard:' + rn);
-    socket.emit('mcard:config', { opcha: mcardOpchaEnabled() });
-    socket.emit('mcard:history', r.posts);
-    io.to('mcard:' + rn).emit('mcard:members', mcardMemberNames(r));
-  });
-
-  socket.on('mcard:post', ({ room, name, word, emoji, feeling, toOpcha } = {}) => {
-    if (!room || !feeling) return;
-    const rn = String(room).trim().slice(0, 24);
-    const r = mcardGetRoom(rn);
-    const post = {
-      id: socket.id + ':' + Date.now(),
-      name: String(name || 'だれか').slice(0, 20),
-      word: String(word || '').slice(0, 20),
-      emoji: String(emoji || '').slice(0, 8),
-      feeling: String(feeling).slice(0, 1000),
-      created_at: new Date().toISOString(),
-    };
-    r.posts.push(post);
-    if (r.posts.length > 500) r.posts.shift();
-    io.to('mcard:' + rn).emit('mcard:post', post);
-
-    // チェックが入っていて、連携が有効なときだけオプチャにも投稿
-    if (toOpcha && mcardOpchaEnabled()) mcardPostToOpcha(post);
-  });
-
-  socket.on('disconnect', () => {
-    if (joinedRoom && cardRooms.has(joinedRoom)) {
-      const r = cardRooms.get(joinedRoom);
-      r.members.delete(socket.id);
-      io.to('mcard:' + joinedRoom).emit('mcard:members', mcardMemberNames(r));
-      if (r.members.size === 0 && r.posts.length === 0) cardRooms.delete(joinedRoom);
-    }
-  });
-});
 
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {

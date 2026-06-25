@@ -2,21 +2,15 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>使命発見カード — みんなで引いて、感じたことを書くゲーム</title>
-<script src="/socket.io/socket.io.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>使命発見カード — 引いて、感じて、オプチャに書く</title>
 <style>
   :root {
-    --bg: #0e1124;
-    --bg2: #161a3a;
+    --bg: #0e1124; --bg2: #161a3a;
     --panel: rgba(255,255,255,0.06);
-    --panel-solid: #1d2147;
-    --ink: #f4f3ff;
-    --muted: #a7a9cc;
-    --accent: #ffcf6b;
-    --accent2: #8b7bff;
-    --line: rgba(255,255,255,0.12);
-    --good: #6be7a8;
+    --ink: #f4f3ff; --muted: #a7a9cc;
+    --accent: #ffcf6b; --accent2: #8b7bff;
+    --line: rgba(255,255,255,0.12); --good: #6be7a8;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; padding: 0; }
@@ -27,182 +21,106 @@
       radial-gradient(1200px 600px at 70% -10%, rgba(139,123,255,0.25), transparent),
       radial-gradient(900px 500px at 10% 110%, rgba(255,207,107,0.12), transparent),
       linear-gradient(160deg, var(--bg), var(--bg2));
-    min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
+    min-height: 100vh; -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 760px; margin: 0 auto; padding: 20px 16px 60px; }
-  h1 { font-size: 22px; letter-spacing: .04em; margin: 6px 0 2px; }
-  .sub { color: var(--muted); font-size: 13px; margin: 0 0 18px; }
-  .badge { font-size: 11px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
-  .badge.live { color: var(--good); border-color: rgba(107,231,168,.4); }
-  .badge.off  { color: #ff9b9b; border-color: rgba(255,155,155,.4); }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 18px 14px 50px; }
+  h1 { font-size: 21px; letter-spacing: .04em; margin: 4px 0 2px; }
+  .sub { color: var(--muted); font-size: 13px; margin: 0 0 16px; }
 
-  .card-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 20px; backdrop-filter: blur(8px); }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 18px; backdrop-filter: blur(8px); }
 
-  label { display:block; font-size: 12px; color: var(--muted); margin: 12px 0 6px; }
-  input[type=text], textarea {
-    width: 100%; background: rgba(0,0,0,.25); border: 1px solid var(--line); color: var(--ink);
-    border-radius: 12px; padding: 12px 14px; font-size: 16px; font-family: inherit; outline: none;
-  }
-  input:focus, textarea:focus { border-color: var(--accent2); }
-  textarea { resize: vertical; min-height: 90px; line-height: 1.6; }
-
-  button {
+  button, .btn {
     font-family: inherit; cursor: pointer; border: none; border-radius: 12px; font-size: 15px; font-weight: 700;
     padding: 13px 18px; transition: transform .08s ease, opacity .2s; letter-spacing: .03em;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none;
   }
-  button:active { transform: scale(.97); }
-  button:disabled { opacity: .45; cursor: not-allowed; }
-  .btn-primary { background: linear-gradient(135deg, var(--accent), #ffb347); color: #2a1c00; width: 100%; }
-  .btn-accent { background: linear-gradient(135deg, var(--accent2), #6a5bff); color: #fff; width: 100%; }
-  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+  button:active, .btn:active { transform: scale(.97); }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), #ffb347); color: #2a1c00; }
+  .btn-accent  { background: linear-gradient(135deg, var(--accent2), #6a5bff); color: #fff; }
+  .btn-ghost   { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+  .full { width: 100%; }
 
-  .row { display: flex; gap: 10px; align-items: center; }
-  .row.between { justify-content: space-between; }
-
-  /* ---- card visual ---- */
-  .deck-area { text-align: center; padding: 8px 0 4px; }
-  .scene { perspective: 1200px; display: inline-block; margin: 6px auto 12px; }
-  .card3d {
-    width: 210px; height: 300px; position: relative; transform-style: preserve-3d;
-    transition: transform .7s cubic-bezier(.2,.8,.2,1); cursor: pointer;
-  }
+  /* card */
+  .deck-area { text-align: center; padding: 6px 0 2px; }
+  .scene { perspective: 1200px; display: inline-block; margin: 4px auto 12px; }
+  .card3d { width: 190px; height: 270px; position: relative; transform-style: preserve-3d; transition: transform .7s cubic-bezier(.2,.8,.2,1); cursor: pointer; }
   .card3d.flipped { transform: rotateY(180deg); }
-  .face {
-    position: absolute; inset: 0; border-radius: 18px; backface-visibility: hidden;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 18px; text-align: center;
-    box-shadow: 0 18px 40px rgba(0,0,0,.45);
-  }
-  .face.back {
-    background:
-      repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 8px, transparent 8px 16px),
-      linear-gradient(150deg, #2a2f63, #14173a);
-    border: 1px solid var(--line);
-  }
-  .face.back .seal { font-size: 46px; opacity: .9; }
-  .face.back .label { color: var(--muted); font-size: 12px; letter-spacing: .3em; margin-top: 10px; }
-  .face.front {
-    transform: rotateY(180deg);
-    background: linear-gradient(155deg, #fff8ea, #ffe9c2);
-    color: #2a1c00; border: 1px solid #ffce82;
-  }
-  .face.front .emoji { font-size: 40px; }
-  .face.front .word { font-size: 30px; font-weight: 800; margin: 8px 0 6px; letter-spacing: .06em; }
+  .face { position: absolute; inset: 0; border-radius: 18px; backface-visibility: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; text-align: center; box-shadow: 0 18px 40px rgba(0,0,0,.45); }
+  .face.back { background: repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 8px, transparent 8px 16px), linear-gradient(150deg, #2a2f63, #14173a); border: 1px solid var(--line); }
+  .face.back .seal { font-size: 42px; opacity: .9; }
+  .face.back .label { color: var(--muted); font-size: 11px; letter-spacing: .3em; margin-top: 10px; }
+  .face.front { transform: rotateY(180deg); background: linear-gradient(155deg, #fff8ea, #ffe9c2); color: #2a1c00; border: 1px solid #ffce82; }
+  .face.front .emoji { font-size: 38px; }
+  .face.front .word { font-size: 28px; font-weight: 800; margin: 8px 0 6px; letter-spacing: .06em; }
   .face.front .prompt { font-size: 13px; line-height: 1.7; color: #6b4e1a; }
 
-  .post {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; margin-top: 12px;
-    animation: pop .35s ease;
-  }
-  @keyframes pop { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-  .post .head { display: flex; align-items: center; gap: 8px; font-size: 13px; }
-  .post .who { font-weight: 700; }
-  .post .pill { font-size: 11px; background: rgba(255,207,107,.16); color: var(--accent); padding: 2px 9px; border-radius: 999px; border: 1px solid rgba(255,207,107,.3); }
-  .post .time { color: var(--muted); font-size: 11px; margin-left: auto; }
-  .post .body { margin-top: 8px; line-height: 1.75; white-space: pre-wrap; font-size: 15px; }
+  .draw-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 4px; }
+  .hint { color: var(--muted); font-size: 13px; line-height: 1.7; margin: 14px 2px 0; }
+  .hint b { color: var(--accent); }
 
-  .members { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
-  .chip { font-size: 12px; padding: 5px 11px; border-radius: 999px; background: rgba(139,123,255,.14); border: 1px solid rgba(139,123,255,.3); }
-  .chip .dot { color: var(--good); }
+  .opcha-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 24px 2px 8px; }
+  .opcha-head .t { font-size: 14px; color: var(--muted); letter-spacing: .08em; }
+  .opcha-actions { display: flex; gap: 8px; }
+  .opcha-actions .btn { font-size: 13px; padding: 9px 13px; }
+  .frame-box { border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: #fff; }
+  iframe { width: 100%; height: 620px; border: 0; display: block; }
 
-  .opcha-row { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; font-size: 13px; color: var(--ink); cursor: pointer; }
-  .opcha-row input { width: 16px; height: 16px; accent-color: var(--accent2); }
-
-  .hidden { display: none !important; }
-  .center { text-align: center; }
-  .muted { color: var(--muted); font-size: 13px; }
-  .divider { height: 1px; background: var(--line); margin: 18px 0; }
-  .section-title { font-size: 13px; color: var(--muted); letter-spacing: .1em; margin: 22px 0 4px; }
-  .toast {
-    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
-    background: #2a2f63; border: 1px solid var(--line); padding: 10px 18px; border-radius: 999px; font-size: 13px;
-    opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 50;
-  }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #2a2f63; border: 1px solid var(--line); padding: 10px 18px; border-radius: 999px; font-size: 13px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 50; }
   .toast.show { opacity: 1; }
-  code { background: rgba(0,0,0,.3); padding: 1px 6px; border-radius: 6px; font-size: 12px; }
+  .hidden { display: none !important; }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <!-- ============ LOBBY ============ -->
-  <section id="lobby">
-    <div class="row between">
-      <div>
-        <h1>🃏 使命発見カード</h1>
-        <p class="sub">カードを引いて、感じたことを書いてシェアするゲーム</p>
-      </div>
-      <span id="modeBadge" class="badge">接続中…</span>
-    </div>
+  <h1>🃏 使命発見カード</h1>
+  <p class="sub">カードを引いて、感じたことをオプチャに書いてシェアしよう</p>
 
-    <div class="card-panel">
-      <label>あなたの名前（ニックネーム）</label>
-      <input id="nameInput" type="text" maxlength="20" placeholder="例：たけし" autocomplete="off" />
-
-      <label>あいことば（同じ言葉を入れた人同士で集まれます）</label>
-      <input id="roomInput" type="text" maxlength="24" placeholder="例：あさのかい" autocomplete="off" />
-
-      <div style="height:14px"></div>
-      <button id="enterBtn" class="btn-primary">ルームに入る</button>
-      <p class="muted center" style="margin-top:12px">同じ「あいことば」を友だちに伝えて、各自の端末から入ってもらいましょう。</p>
-    </div>
-  </section>
-
-  <!-- ============ ROOM ============ -->
-  <section id="room" class="hidden">
-    <div class="row between">
-      <div>
-        <h1 id="roomTitle">🃏 ルーム</h1>
-        <p class="sub" id="roomSub"></p>
-      </div>
-      <button id="leaveBtn" class="btn-ghost" style="padding:8px 14px;font-size:13px">退出</button>
-    </div>
-
-    <div class="card-panel deck-area">
-      <div class="scene">
-        <div id="card3d" class="card3d">
-          <div class="face back">
-            <div class="seal">✦</div>
-            <div class="label">TAP TO DRAW</div>
-          </div>
-          <div class="face front">
-            <div class="emoji" id="cardEmoji">✨</div>
-            <div class="word" id="cardWord">—</div>
-            <div class="prompt" id="cardPrompt"></div>
-          </div>
+  <!-- ===== カードを引く ===== -->
+  <div class="panel deck-area">
+    <div class="scene">
+      <div id="card3d" class="card3d">
+        <div class="face back"><div class="seal">✦</div><div class="label">TAP TO DRAW</div></div>
+        <div class="face front">
+          <div class="emoji" id="cardEmoji">✨</div>
+          <div class="word" id="cardWord">—</div>
+          <div class="prompt" id="cardPrompt"></div>
         </div>
       </div>
-      <div>
-        <button id="drawBtn" class="btn-accent" style="max-width:280px;margin:0 auto">カードを引く</button>
-      </div>
     </div>
-
-    <div id="writeBox" class="card-panel hidden" style="margin-top:14px">
-      <label>このカードから、いま感じていること</label>
-      <textarea id="feelingInput" placeholder="心に浮かんだことを、そのまま書いてみよう…"></textarea>
-      <label id="opchaRow" class="opcha-row hidden">
-        <input type="checkbox" id="opchaCheck" />
-        <span>リザストのオプチャにも投稿する</span>
-      </label>
-      <div style="height:12px"></div>
-      <button id="postBtn" class="btn-primary">この気持ちをシェアする</button>
+    <div class="draw-row">
+      <button id="drawBtn" class="btn-accent">カードを引く</button>
+      <button id="copyBtn" class="btn-ghost hidden">この言葉をコピー</button>
     </div>
+    <p class="hint" id="hint">
+      まずはカードを引いてみましょう。<br>
+      引いたら、下の<b>オプチャ</b>に <b>お名前（ニックネーム）</b>と感じたことを書いて投稿してね。
+    </p>
+  </div>
 
-    <div class="section-title">▷ いま一緒にいる人</div>
-    <div id="members" class="members"></div>
-
-    <div class="section-title">▷ みんなの気持ち</div>
-    <div id="feed">
-      <p class="muted" id="emptyFeed">まだ投稿はありません。最初の一枚を引いてみましょう。</p>
+  <!-- ===== オプチャ（みんなの気持ち） ===== -->
+  <div class="opcha-head">
+    <span class="t">▷ みんなの気持ち（オプチャ）</span>
+    <div class="opcha-actions">
+      <button id="reloadBtn" class="btn-ghost">🔄 更新</button>
+      <a id="openTabBtn" class="btn-primary" href="https://www.reservestock.jp/page2/open_threads/32" target="_blank" rel="noopener">✍️ 別タブで書く</a>
     </div>
-  </section>
+  </div>
+  <div class="frame-box">
+    <iframe id="opchaFrame" src="https://www.reservestock.jp/page2/open_threads/32"
+            referrerpolicy="no-referrer-when-downgrade"></iframe>
+  </div>
+  <p class="hint">
+    ※ 投稿がうまくいかない時（スマホで多いです）は、上の <b>「✍️ 別タブで書く」</b> から投稿してください。
+    書いたあとは <b>「🔄 更新」</b> で最新の投稿が表示されます。
+  </p>
 
 </div>
 
 <div id="toast" class="toast"></div>
 
 <script>
-/* ===================== カードの仮データ ===================== */
+const $ = (id) => document.getElementById(id);
 const DECK = [
   { e:"🌱", w:"芽生え",   p:"いま、あなたの中で静かに育ちはじめているものは？" },
   { e:"🔥", w:"情熱",     p:"思い出すだけで胸が熱くなるものは何ですか？" },
@@ -230,133 +148,40 @@ const DECK = [
   { e:"🍀", w:"めぐり",   p:"最近あった、小さな幸運やご縁は？" },
 ];
 
-/* ===================== アプリ本体（Socket.io） ===================== */
-const $ = (id) => document.getElementById(id);
-let socket = null;
-let me = { name: "" };
-let room = "";
 let currentCard = null;
-const seenPostIds = new Set();
-
-function toast(msg) {
-  const t = $("toast"); t.textContent = msg; t.classList.add("show");
-  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("show"), 1800);
-}
-function timeStr(iso) {
-  const d = iso ? new Date(iso) : new Date();
-  return d.getHours().toString().padStart(2,"0") + ":" + d.getMinutes().toString().padStart(2,"0");
-}
-function escapeHtml(s){ const d=document.createElement("div"); d.textContent=s; return d.innerHTML; }
-
-/* ---------- connect to the shared reza-no server ---------- */
-socket = io();
-const badge = $("modeBadge");
-socket.on("connect", () => {
-  badge.textContent = "オンライン"; badge.className = "badge live";
-  if (room) socket.emit("mcard:join", { room, name: me.name }); // rejoin after reconnect
-});
-socket.on("disconnect", () => { badge.textContent = "再接続中…"; badge.className = "badge off"; });
-
-socket.on("mcard:history", (posts) => { (posts || []).forEach(p => addPost(p, false)); });
-socket.on("mcard:post", (p) => addPost(p, true));
-socket.on("mcard:members", (names) => renderMembers(names || []));
-socket.on("mcard:config", (cfg) => {
-  // オプチャ連携がサーバーで有効なときだけチェック欄を出す
-  $("opchaRow").classList.toggle("hidden", !(cfg && cfg.opcha));
-});
-
-/* ---------- enter / leave ---------- */
-$("enterBtn").addEventListener("click", enterRoom);
-$("roomInput").addEventListener("keydown", e => { if (e.key === "Enter") enterRoom(); });
-$("nameInput").addEventListener("keydown", e => { if (e.key === "Enter") $("roomInput").focus(); });
-$("leaveBtn").addEventListener("click", () => location.reload());
-
-function enterRoom() {
-  const name = $("nameInput").value.trim();
-  const r = $("roomInput").value.trim();
-  if (!name) { toast("名前を入力してください"); return; }
-  if (!r)    { toast("あいことばを入力してください"); return; }
-  if (!socket.connected) { toast("サーバーに接続中です。少し待ってね"); return; }
-
-  me = { name };
-  room = r;
-
-  $("lobby").classList.add("hidden");
-  $("room").classList.remove("hidden");
-  $("roomTitle").textContent = "🃏 " + room;
-  $("roomSub").textContent = "オンライン — 別の端末ともリアルタイムで共有中";
-
-  socket.emit("mcard:join", { room, name: me.name });
-}
-
-/* ---------- members ---------- */
-function renderMembers(names) {
-  names = [...new Set(names)];
-  const box = $("members");
-  box.innerHTML = names.map(n =>
-    `<span class="chip"><span class="dot">●</span> ${escapeHtml(n)}${n===me.name?" (あなた)":""}</span>`
-  ).join("") || `<span class="muted">…</span>`;
-}
-
-/* ---------- draw card ---------- */
 const card3d = $("card3d");
-$("drawBtn").addEventListener("click", drawCard);
-card3d.addEventListener("click", () => { if (!card3d.classList.contains("flipped")) drawCard(); });
 
-function drawCard() {
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1800); }
+
+function drawCard(){
   const wasFlipped = card3d.classList.contains("flipped");
   card3d.classList.remove("flipped");
-  const pick = DECK[Math.floor(Math.random() * DECK.length)];
+  const pick = DECK[Math.floor(Math.random()*DECK.length)];
   currentCard = pick;
-  setTimeout(() => {
+  setTimeout(()=>{
     $("cardEmoji").textContent = pick.e;
-    $("cardWord").textContent = pick.w;
-    $("cardPrompt").textContent = pick.p;
+    $("cardWord").textContent  = pick.w;
+    $("cardPrompt").textContent= pick.p;
     card3d.classList.add("flipped");
-    $("writeBox").classList.remove("hidden");
-    $("feelingInput").focus();
     $("drawBtn").textContent = "もう一度引く";
+    $("copyBtn").classList.remove("hidden");
   }, wasFlipped ? 350 : 0);
 }
 
-/* ---------- post ---------- */
-$("postBtn").addEventListener("click", submitPost);
+$("drawBtn").addEventListener("click", drawCard);
+card3d.addEventListener("click", ()=>{ if(!card3d.classList.contains("flipped")) drawCard(); });
 
-function submitPost() {
-  const feeling = $("feelingInput").value.trim();
-  if (!currentCard) { toast("先にカードを引いてね"); return; }
-  if (!feeling)     { toast("感じたことを書いてみてね"); return; }
-  if (!socket.connected) { toast("接続が切れています。少し待ってね"); return; }
+$("copyBtn").addEventListener("click", async ()=>{
+  if(!currentCard) return;
+  try { await navigator.clipboard.writeText(currentCard.w); toast("「"+currentCard.w+"」をコピーしました ✨"); }
+  catch { toast("コピーできませんでした"); }
+});
 
-  const toOpcha = $("opchaCheck").checked;
-  socket.emit("mcard:post", {
-    room, name: me.name, word: currentCard.w, emoji: currentCard.e, feeling, toOpcha
-  });
-  $("feelingInput").value = "";
-  $("opchaCheck").checked = false;
-  $("postBtn").disabled = true;
-  setTimeout(() => $("postBtn").disabled = false, 600);
-  toast(toOpcha ? "シェア＋オプチャに投稿しました ✨" : "シェアしました ✨");
-}
-
-/* ---------- render a post ---------- */
-function addPost(p, animate) {
-  if (p.id && seenPostIds.has(p.id)) return;
-  if (p.id) seenPostIds.add(p.id);
-  $("emptyFeed")?.remove();
-
-  const el = document.createElement("div");
-  el.className = "post";
-  if (!animate) el.style.animation = "none";
-  el.innerHTML =
-    `<div class="head">
-       <span class="who">${escapeHtml(p.name || "だれか")}</span>
-       <span class="pill">${escapeHtml(p.emoji || "")} ${escapeHtml(p.word || "")}</span>
-       <span class="time">${timeStr(p.created_at)}</span>
-     </div>
-     <div class="body">${escapeHtml(p.feeling || "")}</div>`;
-  $("feed").prepend(el);  // newest on top
-}
+$("reloadBtn").addEventListener("click", ()=>{
+  const f = $("opchaFrame");
+  f.src = f.src; // reload
+  toast("最新の投稿を読み込みました");
+});
 </script>
 </body>
 </html>
