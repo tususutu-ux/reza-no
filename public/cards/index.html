@@ -103,15 +103,28 @@
     <span class="t">▷ みんなの気持ち（オプチャ）</span>
     <div class="opcha-actions">
       <button id="reloadBtn" class="btn-ghost">🔄 更新</button>
-      <a id="openTabBtn" class="btn-primary" href="https://www.reservestock.jp/page2/open_threads/32" target="_blank" rel="noopener">✍️ 別タブで書く</a>
+      <a id="openTabBtn" class="btn-primary" href="https://www.reservestock.jp/page2/open_threads/32" target="_blank" rel="noopener">✍️ オプチャを開く</a>
     </div>
   </div>
-  <div class="frame-box">
+
+  <!-- スマホ向け：iframe非対応なのでボタンで誘導 -->
+  <div id="mobileOpcha" class="panel hidden" style="text-align:center">
+    <div style="font-size:34px">💬</div>
+    <p style="margin:8px 0 16px;line-height:1.8;color:var(--muted)">
+      スマホでは、オプチャを別画面で開きます。<br>
+      下のボタンから <b style="color:var(--ink)">お名前</b> と <b style="color:var(--ink)">感じたこと</b> を書いて投稿してね。
+    </p>
+    <a class="btn btn-primary full" href="https://www.reservestock.jp/page2/open_threads/32"
+       target="_blank" rel="noopener" style="font-size:16px;padding:16px">✍️ オプチャを開く（見る・書く）</a>
+  </div>
+
+  <!-- PC向け：iframe埋め込み -->
+  <div id="frameBox" class="frame-box">
     <iframe id="opchaFrame" src="https://www.reservestock.jp/page2/open_threads/32"
             referrerpolicy="no-referrer-when-downgrade"></iframe>
   </div>
-  <p class="hint">
-    ※ 投稿がうまくいかない時（スマホで多いです）は、上の <b>「✍️ 別タブで書く」</b> から投稿してください。
+  <p id="frameHint" class="hint">
+    ※ iframe内で投稿できない時は、上の <b>「✍️ オプチャを開く」</b> から投稿してください。
     書いたあとは <b>「🔄 更新」</b> で最新の投稿が表示されます。
   </p>
 
@@ -147,6 +160,17 @@ const DECK = [
   { e:"🪐", w:"宇宙",     p:"100年後にも残したい想いがあるとしたら？" },
   { e:"🍀", w:"めぐり",   p:"最近あった、小さな幸運やご縁は？" },
 ];
+
+// スマホ判定：iframe埋め込みが効かない（リザストがモバイル専用ドメインへ転送＋
+// そのモバイル版は X-Frame-Options: SAMEORIGIN）ため、スマホはボタン誘導に切替。
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 680;
+if (isMobile) {
+  $("frameBox").classList.add("hidden");
+  $("frameHint").classList.add("hidden");
+  $("reloadBtn").classList.add("hidden");
+  $("openTabBtn").classList.add("hidden"); // ヘッダーのボタンは隠し、下の大ボタンに集約
+  $("mobileOpcha").classList.remove("hidden");
+}
 
 let currentCard = null;
 const card3d = $("card3d");
