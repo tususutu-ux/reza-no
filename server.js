@@ -498,6 +498,35 @@ function mcardMemberNames(room) {
   return [...new Set([...room.members.values()])];
 }
 
+// --- リザスト オプチャ連携（任意・環境変数で設定） ---
+//  Render の Environment に RS_API_KEY と RS_OPEN_THREAD_ID を設定すると有効化。
+//  キーはコードに書かず環境変数からのみ読む。未設定なら連携はオフ（何もしない）。
+function mcardOpchaEnabled() {
+  return !!(process.env.RS_API_KEY && process.env.RS_OPEN_THREAD_ID);
+}
+async function mcardPostToOpcha(post) {
+  if (!mcardOpchaEnabled()) return;
+  try {
+    // 絵文字（4バイト）はリザスト側で化けるためテキスト中心で組む
+    const body = `【使命発見カード】${post.word}\n${post.name}：${post.feeling}`;
+    const params = new URLSearchParams();
+    params.set('open_thread_id', process.env.RS_OPEN_THREAD_ID);
+    params.set('body', body);
+    const base = process.env.RS_BASE_URL || 'https://www.reservestock.jp';
+    const res = await fetch(base + '/api/post_open_thread', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + process.env.RS_API_KEY,
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+      },
+      body: params,
+    });
+    if (!res.ok) console.warn('[mcard] オプチャ投稿失敗 HTTP', res.status);
+  } catch (e) {
+    console.warn('[mcard] オプチャ投稿エラー', e.message);
+  }
+}
+
 io.on('connection', (socket) => {
   let joinedRoom = null;
 
@@ -510,11 +539,12 @@ io.on('connection', (socket) => {
     const r = mcardGetRoom(rn);
     r.members.set(socket.id, nm);
     socket.join('mcard:' + rn);
+    socket.emit('mcard:config', { opcha: mcardOpchaEnabled() });
     socket.emit('mcard:history', r.posts);
     io.to('mcard:' + rn).emit('mcard:members', mcardMemberNames(r));
   });
 
-  socket.on('mcard:post', ({ room, name, word, emoji, feeling } = {}) => {
+  socket.on('mcard:post', ({ room, name, word, emoji, feeling, toOpcha } = {}) => {
     if (!room || !feeling) return;
     const rn = String(room).trim().slice(0, 24);
     const r = mcardGetRoom(rn);
@@ -529,6 +559,9 @@ io.on('connection', (socket) => {
     r.posts.push(post);
     if (r.posts.length > 500) r.posts.shift();
     io.to('mcard:' + rn).emit('mcard:post', post);
+
+    // チェックが入っていて、連携が有効なときだけオプチャにも投稿
+    if (toOpcha && mcardOpchaEnabled()) mcardPostToOpcha(post);
   });
 
   socket.on('disconnect', () => {

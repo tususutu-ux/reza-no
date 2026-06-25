@@ -105,6 +105,9 @@
   .chip { font-size: 12px; padding: 5px 11px; border-radius: 999px; background: rgba(139,123,255,.14); border: 1px solid rgba(139,123,255,.3); }
   .chip .dot { color: var(--good); }
 
+  .opcha-row { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; font-size: 13px; color: var(--ink); cursor: pointer; }
+  .opcha-row input { width: 16px; height: 16px; accent-color: var(--accent2); }
+
   .hidden { display: none !important; }
   .center { text-align: center; }
   .muted { color: var(--muted); font-size: 13px; }
@@ -177,6 +180,10 @@
     <div id="writeBox" class="card-panel hidden" style="margin-top:14px">
       <label>このカードから、いま感じていること</label>
       <textarea id="feelingInput" placeholder="心に浮かんだことを、そのまま書いてみよう…"></textarea>
+      <label id="opchaRow" class="opcha-row hidden">
+        <input type="checkbox" id="opchaCheck" />
+        <span>リザストのオプチャにも投稿する</span>
+      </label>
       <div style="height:12px"></div>
       <button id="postBtn" class="btn-primary">この気持ちをシェアする</button>
     </div>
@@ -253,6 +260,10 @@ socket.on("disconnect", () => { badge.textContent = "再接続中…"; badge.cla
 socket.on("mcard:history", (posts) => { (posts || []).forEach(p => addPost(p, false)); });
 socket.on("mcard:post", (p) => addPost(p, true));
 socket.on("mcard:members", (names) => renderMembers(names || []));
+socket.on("mcard:config", (cfg) => {
+  // オプチャ連携がサーバーで有効なときだけチェック欄を出す
+  $("opchaRow").classList.toggle("hidden", !(cfg && cfg.opcha));
+});
 
 /* ---------- enter / leave ---------- */
 $("enterBtn").addEventListener("click", enterRoom);
@@ -317,13 +328,15 @@ function submitPost() {
   if (!feeling)     { toast("感じたことを書いてみてね"); return; }
   if (!socket.connected) { toast("接続が切れています。少し待ってね"); return; }
 
+  const toOpcha = $("opchaCheck").checked;
   socket.emit("mcard:post", {
-    room, name: me.name, word: currentCard.w, emoji: currentCard.e, feeling
+    room, name: me.name, word: currentCard.w, emoji: currentCard.e, feeling, toOpcha
   });
   $("feelingInput").value = "";
+  $("opchaCheck").checked = false;
   $("postBtn").disabled = true;
   setTimeout(() => $("postBtn").disabled = false, 600);
-  toast("シェアしました ✨");
+  toast(toOpcha ? "シェア＋オプチャに投稿しました ✨" : "シェアしました ✨");
 }
 
 /* ---------- render a post ---------- */
